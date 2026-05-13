@@ -5,11 +5,11 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Vroomly — Fake Supercar Dealership (Parody)" },
+      { title: "Vroomly — Supercar Showroom" },
       {
         name: "description",
         content:
-          "Browse and 'buy' fake supercars with imaginary money. 100% parody — nothing is real.",
+          "Browse real supercars and 'buy' them with imaginary money. Showroom-style spec sheets and pretend purchases.",
       },
     ],
   }),
@@ -23,19 +23,91 @@ type Car = {
   hp: number;
   topSpeed: number;
   zeroTo60: number;
-  emoji: string;
-  color: string;
+  image: string;
 };
 
+// Real cars, real specs (approx). Photos via Unsplash.
 const CARS: Car[] = [
-  { id: "1", name: "Lamborgotti Veneficus", tagline: "Italian thunder, made up", price: 2_400_000, hp: 820, topSpeed: 355, zeroTo60: 2.4, emoji: "🏎️", color: "#ffb800" },
-  { id: "2", name: "Ferreti Spaghettissima", tagline: "Sounds like pasta, drives like a dream", price: 1_900_000, hp: 780, topSpeed: 340, zeroTo60: 2.6, emoji: "🚗", color: "#e10600" },
-  { id: "3", name: "Bugotti Cherrón", tagline: "1500 imaginary horsepower", price: 4_500_000, hp: 1500, topSpeed: 420, zeroTo60: 2.1, emoji: "🚙", color: "#0033a0" },
-  { id: "4", name: "McLearn P2000", tagline: "British, fast, fictional", price: 3_100_000, hp: 980, topSpeed: 372, zeroTo60: 2.3, emoji: "🏎️", color: "#ff8a00" },
-  { id: "5", name: "Porshe 919 Phantom", tagline: "You can't see it because it isn't real", price: 1_650_000, hp: 700, topSpeed: 330, zeroTo60: 2.7, emoji: "🚗", color: "#c0c0c0" },
-  { id: "6", name: "Koenigseggz Jeskö", tagline: "More Z's than letters in your name", price: 3_800_000, hp: 1280, topSpeed: 410, zeroTo60: 2.2, emoji: "🚙", color: "#00d1b2" },
-  { id: "7", name: "Aston Martyr DB-Fake", tagline: "James Bond's pretend backup car", price: 2_200_000, hp: 715, topSpeed: 339, zeroTo60: 2.8, emoji: "🏎️", color: "#1d4e2a" },
-  { id: "8", name: "Pagana Huyara R", tagline: "Hand-built by imagination", price: 5_200_000, hp: 850, topSpeed: 360, zeroTo60: 2.5, emoji: "🚗", color: "#7a00ff" },
+  {
+    id: "1",
+    name: "Lamborghini Aventador SVJ",
+    tagline: "6.5L naturally aspirated V12",
+    price: 517_000,
+    hp: 759,
+    topSpeed: 350,
+    zeroTo60: 2.8,
+    image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80",
+  },
+  {
+    id: "2",
+    name: "Ferrari SF90 Stradale",
+    tagline: "Plug-in hybrid, 4WD, twin-turbo V8",
+    price: 625_000,
+    hp: 986,
+    topSpeed: 340,
+    zeroTo60: 2.5,
+    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80",
+  },
+  {
+    id: "3",
+    name: "Bugatti Chiron Super Sport",
+    tagline: "Quad-turbo W16, 1600 hp",
+    price: 3_900_000,
+    hp: 1577,
+    topSpeed: 440,
+    zeroTo60: 2.4,
+    image: "https://images.unsplash.com/photo-1607603750909-408e193868c7?w=1200&q=80",
+  },
+  {
+    id: "4",
+    name: "McLaren 765LT",
+    tagline: "Long Tail, twin-turbo V8",
+    price: 358_000,
+    hp: 755,
+    topSpeed: 330,
+    zeroTo60: 2.7,
+    image: "https://images.unsplash.com/photo-1612825173281-9a193378527e?w=1200&q=80",
+  },
+  {
+    id: "5",
+    name: "Porsche 911 GT3 RS",
+    tagline: "Track weapon, 9000 rpm flat-six",
+    price: 241_000,
+    hp: 518,
+    topSpeed: 296,
+    zeroTo60: 3.0,
+    image: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1200&q=80",
+  },
+  {
+    id: "6",
+    name: "Koenigsegg Jesko Absolut",
+    tagline: "Built for the highest speed possible",
+    price: 3_000_000,
+    hp: 1600,
+    topSpeed: 480,
+    zeroTo60: 2.5,
+    image: "https://images.unsplash.com/photo-1611821064430-0d40291d0f0b?w=1200&q=80",
+  },
+  {
+    id: "7",
+    name: "Aston Martin Valkyrie",
+    tagline: "F1-derived 6.5L V12 hybrid",
+    price: 3_500_000,
+    hp: 1160,
+    topSpeed: 354,
+    zeroTo60: 2.5,
+    image: "https://images.unsplash.com/photo-1626668893632-6f3a4466d22f?w=1200&q=80",
+  },
+  {
+    id: "8",
+    name: "Pagani Huayra R",
+    tagline: "Track-only, 6.0L V12, no turbos",
+    price: 3_100_000,
+    hp: 838,
+    topSpeed: 383,
+    zeroTo60: 2.7,
+    image: "https://images.unsplash.com/photo-1625231334168-35067f8853ed?w=1200&q=80",
+  },
 ];
 
 const STARTING_BALANCE = 10_000_000;
@@ -52,7 +124,7 @@ function Index() {
 
   const buy = (car: Car) => {
     if (balance < car.price) {
-      setError(`Not enough fake money for the ${car.name}.`);
+      setError(`Not enough balance for the ${car.name}.`);
       setTimeout(() => setError(null), 2500);
       return;
     }
@@ -68,20 +140,16 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="border-b border-foreground/30 bg-foreground/5 px-4 py-2 text-center text-xs">
-        ⚠️ PARODY — None of these cars exist. None of this money is real. You will not receive a car.
-      </div>
-
       <header className="border-b border-foreground/20 px-6 py-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             VROOMLY<span className="opacity-60">™</span>
           </h1>
-          <p className="text-sm opacity-70">Premium Imaginary Supercars · Est. 5 minutes ago</p>
+          <p className="text-sm opacity-70">The Supercar Showroom</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-xs opacity-60">FAKE BALANCE</div>
+            <div className="text-xs opacity-60">BALANCE</div>
             <div className="text-xl font-bold tabular-nums">{fmtMoney(balance)}</div>
           </div>
           <button
@@ -110,13 +178,13 @@ function Index() {
                 key={car.id}
                 className="border border-foreground/30 rounded-lg overflow-hidden hover:border-foreground/60 transition flex flex-col"
               >
-                <div
-                  className="h-40 flex items-center justify-center text-7xl"
-                  style={{ background: `linear-gradient(135deg, ${car.color}33, ${car.color}10)` }}
-                >
-                  <span style={{ filter: `drop-shadow(0 6px 12px ${car.color}88)` }}>
-                    {car.emoji}
-                  </span>
+                <div className="aspect-[16/10] overflow-hidden bg-foreground/5">
+                  <img
+                    src={car.image}
+                    alt={car.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
                   <h3 className="font-bold text-lg leading-tight">{car.name}</h3>
@@ -132,7 +200,7 @@ function Index() {
                       onClick={() => buy(car)}
                       className="border border-foreground/40 hover:bg-foreground hover:text-background px-3 py-1.5 rounded text-sm font-bold cursor-pointer transition"
                     >
-                      Buy (fake)
+                      Buy
                     </button>
                   </div>
                 </div>
@@ -143,15 +211,15 @@ function Index() {
 
         <section>
           <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
-            🅿️ Your Imaginary Garage ({garage.length})
+            🅿️ Your Garage ({garage.length})
           </h2>
           {garage.length === 0 ? (
-            <p className="text-sm opacity-60">Empty. Buy a car above. It will not arrive.</p>
+            <p className="text-sm opacity-60">Empty. Buy a car above.</p>
           ) : (
             <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {garage.map((car, i) => (
                 <li key={i} className="border border-foreground/30 rounded p-3 flex items-center gap-3">
-                  <span className="text-3xl">{car.emoji}</span>
+                  <img src={car.image} alt={car.name} className="w-16 h-12 object-cover rounded" />
                   <div className="flex-1 min-w-0">
                     <div className="font-bold truncate">{car.name}</div>
                     <div className="text-xs opacity-70">{fmtMoney(car.price)}</div>
@@ -163,8 +231,7 @@ function Index() {
         </section>
 
         <p className="text-xs opacity-50 mt-12 text-center max-w-xl mx-auto">
-          Vroomly is a parody. Names, specs, and prices are made up. No vehicles will be
-          delivered. No payment is processed. Please do not call our (nonexistent) sales line.
+          Showroom demo — purchases are simulated and no payment is processed.
         </p>
       </main>
 
@@ -174,24 +241,23 @@ function Index() {
           onClick={() => setPurchase(null)}
         >
           <div
-            className="bg-background border-2 border-foreground/60 rounded-lg p-6 max-w-md w-full text-center"
+            className="bg-background border-2 border-foreground/60 rounded-lg overflow-hidden max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-6xl mb-3">{purchase.emoji}</div>
-            <h3 className="text-2xl font-bold mb-1">Congrats! (not really)</h3>
-            <p className="opacity-80 mb-4">
-              You "bought" a <strong>{purchase.name}</strong> for{" "}
-              <strong>{fmtMoney(purchase.price)}</strong>.
-            </p>
-            <p className="text-xs opacity-60 mb-5">
-              Estimated delivery: never. This car does not exist.
-            </p>
-            <button
-              onClick={() => setPurchase(null)}
-              className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
-            >
-              Cool, thanks
-            </button>
+            <img src={purchase.image} alt={purchase.name} className="w-full aspect-[16/10] object-cover" />
+            <div className="p-6 text-center">
+              <h3 className="text-2xl font-bold mb-1">It's yours.</h3>
+              <p className="opacity-80 mb-4">
+                You bought a <strong>{purchase.name}</strong> for{" "}
+                <strong>{fmtMoney(purchase.price)}</strong>.
+              </p>
+              <button
+                onClick={() => setPurchase(null)}
+                className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
+              >
+                Add to garage
+              </button>
+            </div>
           </div>
         </div>
       )}
