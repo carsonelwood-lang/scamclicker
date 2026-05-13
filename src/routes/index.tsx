@@ -110,33 +110,37 @@ const CARS: Car[] = [
   },
 ];
 
-const STARTING_BALANCE = 10_000_000;
-
 function fmtMoney(n: number) {
   return "$" + n.toLocaleString("en-US");
 }
 
+type Stage = "confirm" | "loading" | "done";
+
 function Index() {
-  const [balance, setBalance] = useState(STARTING_BALANCE);
   const [garage, setGarage] = useState<Car[]>([]);
-  const [purchase, setPurchase] = useState<Car | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<Car | null>(null);
+  const [stage, setStage] = useState<Stage>("confirm");
 
-  const buy = (car: Car) => {
-    if (balance < car.price) {
-      setError(`Not enough balance for the ${car.name}.`);
-      setTimeout(() => setError(null), 2500);
-      return;
-    }
-    setBalance((b) => b - car.price);
-    setGarage((g) => [...g, car]);
-    setPurchase(car);
+  const startBuy = (car: Car) => {
+    setPending(car);
+    setStage("confirm");
   };
 
-  const reset = () => {
-    setBalance(STARTING_BALANCE);
-    setGarage([]);
+  const confirmBuy = () => {
+    if (!pending) return;
+    setStage("loading");
+    setTimeout(() => {
+      setGarage((g) => [...g, pending]);
+      setStage("done");
+    }, 1800);
   };
+
+  const closeModal = () => {
+    setPending(null);
+    setStage("confirm");
+  };
+
+  const reset = () => setGarage([]);
 
   return (
     <div className="min-h-screen text-foreground marble-bg">
@@ -148,15 +152,11 @@ function Index() {
           <p className="text-sm opacity-70">The Showroom</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-xs opacity-60">BALANCE</div>
-            <div className="text-xl font-bold tabular-nums">{fmtMoney(balance)}</div>
-          </div>
           <button
             onClick={reset}
             className="border border-foreground/40 hover:bg-foreground/10 px-3 py-2 text-sm rounded cursor-pointer"
           >
-            Reset
+            Reset Garage
           </button>
         </div>
       </header>
