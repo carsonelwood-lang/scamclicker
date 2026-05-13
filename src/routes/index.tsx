@@ -110,33 +110,37 @@ const CARS: Car[] = [
   },
 ];
 
-const STARTING_BALANCE = 10_000_000;
-
 function fmtMoney(n: number) {
   return "$" + n.toLocaleString("en-US");
 }
 
+type Stage = "confirm" | "loading" | "done";
+
 function Index() {
-  const [balance, setBalance] = useState(STARTING_BALANCE);
   const [garage, setGarage] = useState<Car[]>([]);
-  const [purchase, setPurchase] = useState<Car | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<Car | null>(null);
+  const [stage, setStage] = useState<Stage>("confirm");
 
-  const buy = (car: Car) => {
-    if (balance < car.price) {
-      setError(`Not enough balance for the ${car.name}.`);
-      setTimeout(() => setError(null), 2500);
-      return;
-    }
-    setBalance((b) => b - car.price);
-    setGarage((g) => [...g, car]);
-    setPurchase(car);
+  const startBuy = (car: Car) => {
+    setPending(car);
+    setStage("confirm");
   };
 
-  const reset = () => {
-    setBalance(STARTING_BALANCE);
-    setGarage([]);
+  const confirmBuy = () => {
+    if (!pending) return;
+    setStage("loading");
+    setTimeout(() => {
+      setGarage((g) => [...g, pending]);
+      setStage("done");
+    }, 1800);
   };
+
+  const closeModal = () => {
+    setPending(null);
+    setStage("confirm");
+  };
+
+  const reset = () => setGarage([]);
 
   return (
     <div className="min-h-screen text-foreground marble-bg">
@@ -148,25 +152,16 @@ function Index() {
           <p className="text-sm opacity-70">The Showroom</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-xs opacity-60">BALANCE</div>
-            <div className="text-xl font-bold tabular-nums">{fmtMoney(balance)}</div>
-          </div>
           <button
             onClick={reset}
             className="border border-foreground/40 hover:bg-foreground/10 px-3 py-2 text-sm rounded cursor-pointer"
           >
-            Reset
+            Reset Garage
           </button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto p-6">
-        {error && (
-          <div className="mb-4 border border-foreground/40 bg-foreground/10 px-4 py-2 rounded text-sm">
-            {error}
-          </div>
-        )}
 
         <section className="mb-10">
           <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
@@ -197,7 +192,7 @@ function Index() {
                   <div className="mt-auto flex items-center justify-between gap-2">
                     <div className="font-bold tabular-nums">{fmtMoney(car.price)}</div>
                     <button
-                      onClick={() => buy(car)}
+                      onClick={() => startBuy(car)}
                       className="border border-foreground/40 hover:bg-foreground hover:text-background px-3 py-1.5 rounded text-sm font-bold cursor-pointer transition"
                     >
                       Buy
@@ -235,28 +230,60 @@ function Index() {
         </p>
       </main>
 
-      {purchase && (
+      {pending && (
         <div
           className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-          onClick={() => setPurchase(null)}
+          onClick={stage === "loading" ? undefined : closeModal}
         >
           <div
             className="bg-background border-2 border-foreground/60 rounded-lg overflow-hidden max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <img src={purchase.image} alt={purchase.name} className="w-full aspect-[16/10] object-cover" />
+            <img src={pending.image} alt={pending.name} className="w-full aspect-[16/10] object-cover" />
             <div className="p-6 text-center">
-              <h3 className="text-2xl font-bold mb-1">It's yours.</h3>
-              <p className="opacity-80 mb-4">
-                You bought a <strong>{purchase.name}</strong> for{" "}
-                <strong>{fmtMoney(purchase.price)}</strong>.
-              </p>
-              <button
-                onClick={() => setPurchase(null)}
-                className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
-              >
-                Add to garage
-              </button>
+              {stage === "confirm" && (
+                <>
+                  <h3 className="text-2xl font-bold mb-1">Confirm purchase</h3>
+                  <p className="opacity-80 mb-4">
+                    Buy a <strong>{pending.name}</strong> for{" "}
+                    <strong>{fmtMoney(pending.price)}</strong>?
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={closeModal}
+                      className="border border-foreground/40 hover:bg-foreground/10 px-4 py-2 rounded font-bold cursor-pointer transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmBuy}
+                      className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </>
+              )}
+              {stage === "loading" && (
+                <div className="py-6 flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+                  <p className="text-sm opacity-70">Processing purchase…</p>
+                </div>
+              )}
+              {stage === "done" && (
+                <>
+                  <h3 className="text-2xl font-bold mb-1">It's yours.</h3>
+                  <p className="opacity-80 mb-4">
+                    You bought a <strong>{pending.name}</strong>.
+                  </p>
+                  <button
+                    onClick={closeModal}
+                    className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
+                  >
+                    Add to garage
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
