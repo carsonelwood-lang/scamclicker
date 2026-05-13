@@ -1,299 +1,200 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Baby Boxer 9000 — Harmless Parody Game" },
+      { title: "Vroomly — Fake Supercar Dealership (Parody)" },
       {
         name: "description",
         content:
-          "A silly parody game where you press S to box cartoon babies. Not real. Level up your imaginary power.",
+          "Browse and 'buy' fake supercars with imaginary money. 100% parody — nothing is real.",
       },
     ],
   }),
 });
 
-function fmt(n: number) {
-  if (n < 1000) return Math.floor(n).toString();
-  const u = ["", "K", "M", "B", "T"];
-  let i = 0;
-  while (n >= 1000 && i < u.length - 1) {
-    n /= 1000;
-    i++;
-  }
-  return n.toFixed(2) + u[i];
-}
-
-type Baby = {
-  id: number;
-  x: number;
-  y: number;
+type Car = {
+  id: string;
+  name: string;
+  tagline: string;
+  price: number;
   hp: number;
-  maxHp: number;
-  hit: number;
+  topSpeed: number;
+  zeroTo60: number;
+  emoji: string;
+  color: string;
 };
 
-type Hit = { id: number; x: number; y: number; dmg: number; crit: boolean };
+const CARS: Car[] = [
+  { id: "1", name: "Lamborgotti Veneficus", tagline: "Italian thunder, made up", price: 2_400_000, hp: 820, topSpeed: 355, zeroTo60: 2.4, emoji: "🏎️", color: "#ffb800" },
+  { id: "2", name: "Ferreti Spaghettissima", tagline: "Sounds like pasta, drives like a dream", price: 1_900_000, hp: 780, topSpeed: 340, zeroTo60: 2.6, emoji: "🚗", color: "#e10600" },
+  { id: "3", name: "Bugotti Cherrón", tagline: "1500 imaginary horsepower", price: 4_500_000, hp: 1500, topSpeed: 420, zeroTo60: 2.1, emoji: "🚙", color: "#0033a0" },
+  { id: "4", name: "McLearn P2000", tagline: "British, fast, fictional", price: 3_100_000, hp: 980, topSpeed: 372, zeroTo60: 2.3, emoji: "🏎️", color: "#ff8a00" },
+  { id: "5", name: "Porshe 919 Phantom", tagline: "You can't see it because it isn't real", price: 1_650_000, hp: 700, topSpeed: 330, zeroTo60: 2.7, emoji: "🚗", color: "#c0c0c0" },
+  { id: "6", name: "Koenigseggz Jeskö", tagline: "More Z's than letters in your name", price: 3_800_000, hp: 1280, topSpeed: 410, zeroTo60: 2.2, emoji: "🚙", color: "#00d1b2" },
+  { id: "7", name: "Aston Martyr DB-Fake", tagline: "James Bond's pretend backup car", price: 2_200_000, hp: 715, topSpeed: 339, zeroTo60: 2.8, emoji: "🏎️", color: "#1d4e2a" },
+  { id: "8", name: "Pagana Huyara R", tagline: "Hand-built by imagination", price: 5_200_000, hp: 850, topSpeed: 360, zeroTo60: 2.5, emoji: "🚗", color: "#7a00ff" },
+];
+
+const STARTING_BALANCE = 10_000_000;
+
+function fmtMoney(n: number) {
+  return "$" + n.toLocaleString("en-US");
+}
 
 function Index() {
-  const [score, setScore] = useState(0);
-  const [coins, setCoins] = useState(0);
-  const [power, setPower] = useState(1);
-  const [crit, setCrit] = useState(0); // crit chance %
-  const [combo, setCombo] = useState(0);
-  const [babies, setBabies] = useState<Baby[]>([]);
-  const [hits, setHits] = useState<Hit[]>([]);
-  const [shake, setShake] = useState(false);
-  const nextId = useRef(1);
-  const comboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [balance, setBalance] = useState(STARTING_BALANCE);
+  const [garage, setGarage] = useState<Car[]>([]);
+  const [purchase, setPurchase] = useState<Car | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const spawn = useCallback(() => {
-    setBabies((bs) => {
-      if (bs.length >= 6) return bs;
-      const id = nextId.current++;
-      const hp = 3 + Math.floor(Math.random() * 4);
-      return [
-        ...bs,
-        {
-          id,
-          x: 8 + Math.random() * 84,
-          y: 15 + Math.random() * 70,
-          hp,
-          maxHp: hp,
-          hit: 0,
-        },
-      ];
-    });
-  }, []);
+  const buy = (car: Car) => {
+    if (balance < car.price) {
+      setError(`Not enough fake money for the ${car.name}.`);
+      setTimeout(() => setError(null), 2500);
+      return;
+    }
+    setBalance((b) => b - car.price);
+    setGarage((g) => [...g, car]);
+    setPurchase(car);
+  };
 
-  useEffect(() => {
-    spawn();
-    spawn();
-    spawn();
-    const t = setInterval(spawn, 1400);
-    return () => clearInterval(t);
-  }, [spawn]);
-
-  const punch = useCallback(() => {
-    setBabies((bs) => {
-      if (bs.length === 0) return bs;
-      const target = bs[0];
-      const isCrit = Math.random() * 100 < crit;
-      const dmg = isCrit ? power * 3 : power;
-      const newHp = target.hp - dmg;
-
-      const hitId = nextId.current++;
-      setHits((h) => [
-        ...h,
-        { id: hitId, x: target.x, y: target.y, dmg, crit: isCrit },
-      ]);
-      setTimeout(
-        () => setHits((h) => h.filter((x) => x.id !== hitId)),
-        700,
-      );
-
-      setShake(true);
-      setTimeout(() => setShake(false), 90);
-
-      setCombo((c) => c + 1);
-      if (comboTimer.current) clearTimeout(comboTimer.current);
-      comboTimer.current = setTimeout(() => setCombo(0), 1500);
-
-      if (newHp <= 0) {
-        setScore((s) => s + dmg + 5);
-        setCoins((c) => c + 1 + Math.floor(power / 4));
-        return bs.slice(1).map((b, i) =>
-          i === 0 ? b : b,
-        );
-      }
-      return bs.map((b) =>
-        b.id === target.id
-          ? { ...b, hp: newHp, hit: Date.now() }
-          : b,
-      );
-    });
-    setScore((s) => s + power);
-  }, [power, crit]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      if (e.key === "s" || e.key === "S") {
-        e.preventDefault();
-        punch();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [punch]);
-
-  const upgrades = [
-    {
-      id: "power",
-      name: "💪 Punch Power +1",
-      cost: Math.ceil(10 * Math.pow(1.4, power - 1)),
-      buy: () => setPower((p) => p + 1),
-    },
-    {
-      id: "crit",
-      name: "🎯 Crit Chance +5%",
-      cost: Math.ceil(25 * Math.pow(1.5, crit / 5)),
-      disabled: crit >= 80,
-      buy: () => setCrit((c) => Math.min(80, c + 5)),
-    },
-  ];
+  const reset = () => {
+    setBalance(STARTING_BALANCE);
+    setGarage([]);
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-mono">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="border-b border-foreground/30 bg-foreground/5 px-4 py-2 text-center text-xs">
-        ⚠️ PARODY GAME — Cartoon babies only. No real babies harmed. It's a
-        joke.
+        ⚠️ PARODY — None of these cars exist. None of this money is real. You will not receive a car.
       </div>
 
-      <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap gap-4 items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          <span className="opacity-60">$</span> ./baby-boxer-9000.exe
-        </h1>
-        <div className="text-sm opacity-80">
-          Press <kbd className="border border-foreground/40 px-2 py-0.5 rounded">S</kbd> to box
+      <header className="border-b border-foreground/20 px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            VROOMLY<span className="opacity-60">™</span>
+          </h1>
+          <p className="text-sm opacity-70">Premium Imaginary Supercars · Est. 5 minutes ago</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-xs opacity-60">FAKE BALANCE</div>
+            <div className="text-xl font-bold tabular-nums">{fmtMoney(balance)}</div>
+          </div>
+          <button
+            onClick={reset}
+            className="border border-foreground/40 hover:bg-foreground/10 px-3 py-2 text-sm rounded cursor-pointer"
+          >
+            Reset
+          </button>
         </div>
       </header>
 
-      <main className="grid lg:grid-cols-[1fr_320px] gap-6 p-4 lg:p-6 max-w-7xl mx-auto">
-        <section>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-center text-sm">
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">SCORE</div>
-              <div className="text-lg font-bold tabular-nums">{fmt(score)}</div>
-            </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">COINS</div>
-              <div className="text-lg font-bold tabular-nums">{fmt(coins)}</div>
-            </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">POWER</div>
-              <div className="text-lg font-bold tabular-nums">{power}</div>
-            </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">CRIT</div>
-              <div className="text-lg font-bold tabular-nums">{crit}%</div>
-            </div>
+      <main className="max-w-7xl mx-auto p-6">
+        {error && (
+          <div className="mb-4 border border-foreground/40 bg-foreground/10 px-4 py-2 rounded text-sm">
+            {error}
           </div>
+        )}
 
-          <div
-            className={`relative w-full aspect-[4/3] border-2 border-foreground/40 rounded-lg overflow-hidden bg-foreground/5 ${
-              shake ? "translate-x-0.5 -translate-y-0.5" : ""
-            } transition-transform`}
-          >
-            {/* ring */}
-            <div className="absolute inset-4 border border-dashed border-foreground/30 rounded" />
-
-            {babies.map((b, i) => (
-              <div
-                key={b.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2 select-none"
-                style={{ left: `${b.x}%`, top: `${b.y}%` }}
+        <section className="mb-10">
+          <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
+            🏁 The Showroom
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CARS.map((car) => (
+              <article
+                key={car.id}
+                className="border border-foreground/30 rounded-lg overflow-hidden hover:border-foreground/60 transition flex flex-col"
               >
                 <div
-                  className={`text-5xl transition-transform ${
-                    Date.now() - b.hit < 100 ? "scale-75 rotate-12" : "scale-100"
-                  } ${i === 0 ? "drop-shadow-[0_0_12px_oklch(0.92_0.18_145/0.7)]" : "opacity-70"}`}
+                  className="h-40 flex items-center justify-center text-7xl"
+                  style={{ background: `linear-gradient(135deg, ${car.color}33, ${car.color}10)` }}
                 >
-                  👶
+                  <span style={{ filter: `drop-shadow(0 6px 12px ${car.color}88)` }}>
+                    {car.emoji}
+                  </span>
                 </div>
-                <div className="mt-1 w-12 h-1.5 bg-foreground/20 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-foreground transition-all"
-                    style={{ width: `${(b.hp / b.maxHp) * 100}%` }}
-                  />
-                </div>
-                {i === 0 && (
-                  <div className="text-[10px] text-center opacity-70 mt-0.5">
-                    TARGET
+                <div className="p-4 flex-1 flex flex-col">
+                  <h3 className="font-bold text-lg leading-tight">{car.name}</h3>
+                  <p className="text-xs opacity-70 mb-3">{car.tagline}</p>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-4">
+                    <div><div className="opacity-60">HP</div><div className="font-bold">{car.hp}</div></div>
+                    <div><div className="opacity-60">TOP</div><div className="font-bold">{car.topSpeed} km/h</div></div>
+                    <div><div className="opacity-60">0–60</div><div className="font-bold">{car.zeroTo60}s</div></div>
                   </div>
-                )}
-              </div>
+                  <div className="mt-auto flex items-center justify-between gap-2">
+                    <div className="font-bold tabular-nums">{fmtMoney(car.price)}</div>
+                    <button
+                      onClick={() => buy(car)}
+                      className="border border-foreground/40 hover:bg-foreground hover:text-background px-3 py-1.5 rounded text-sm font-bold cursor-pointer transition"
+                    >
+                      Buy (fake)
+                    </button>
+                  </div>
+                </div>
+              </article>
             ))}
-
-            {hits.map((h) => (
-              <div
-                key={h.id}
-                className={`absolute -translate-x-1/2 pointer-events-none font-bold animate-[float_0.7s_ease-out_forwards] ${
-                  h.crit ? "text-3xl" : "text-xl"
-                }`}
-                style={{ left: `${h.x}%`, top: `${h.y}%` }}
-              >
-                {h.crit ? `CRIT! -${h.dmg}` : `-${h.dmg}`}
-              </div>
-            ))}
-
-            {combo > 1 && (
-              <div className="absolute top-2 right-3 text-sm font-bold opacity-80">
-                COMBO ×{combo}
-              </div>
-            )}
-
-            {babies.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm opacity-60">
-                spawning...
-              </div>
-            )}
           </div>
-
-          <button
-            onClick={punch}
-            className="mt-4 w-full border border-foreground/40 hover:bg-foreground/10 active:scale-95 transition py-3 rounded font-bold cursor-pointer"
-          >
-            👊 BOX [S]
-          </button>
-
-          <p className="mt-4 text-xs opacity-60 text-center">
-            This is a cartoon parody. Babies are emoji. No real harm. Please
-            don't actually box babies, that would be very bad.
-          </p>
         </section>
 
-        <aside>
-          <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2">
-            🛒 /upgrades
+        <section>
+          <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
+            🅿️ Your Imaginary Garage ({garage.length})
           </h2>
-          <div className="space-y-2">
-            {upgrades.map((u) => {
-              const can = coins >= u.cost && !u.disabled;
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    if (!can) return;
-                    setCoins((c) => c - u.cost);
-                    u.buy();
-                  }}
-                  disabled={!can}
-                  className={`w-full text-left border border-foreground/30 p-3 rounded transition ${
-                    can
-                      ? "hover:bg-foreground/15 cursor-pointer"
-                      : "opacity-40 cursor-not-allowed"
-                  }`}
-                >
-                  <div className="font-bold">{u.name}</div>
-                  <div className="text-xs opacity-70 mt-1">
-                    {u.disabled ? "MAXED" : `cost: ${u.cost} coins`}
+          {garage.length === 0 ? (
+            <p className="text-sm opacity-60">Empty. Buy a car above. It will not arrive.</p>
+          ) : (
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {garage.map((car, i) => (
+                <li key={i} className="border border-foreground/30 rounded p-3 flex items-center gap-3">
+                  <span className="text-3xl">{car.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold truncate">{car.name}</div>
+                    <div className="text-xs opacity-70">{fmtMoney(car.price)}</div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <p className="text-xs opacity-50 mt-12 text-center max-w-xl mx-auto">
+          Vroomly is a parody. Names, specs, and prices are made up. No vehicles will be
+          delivered. No payment is processed. Please do not call our (nonexistent) sales line.
+        </p>
       </main>
 
-      <style>{`
-        @keyframes float {
-          0% { transform: translate(-50%, 0); opacity: 1; }
-          100% { transform: translate(-50%, -60px); opacity: 0; }
-        }
-      `}</style>
+      {purchase && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
+          onClick={() => setPurchase(null)}
+        >
+          <div
+            className="bg-background border-2 border-foreground/60 rounded-lg p-6 max-w-md w-full text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-6xl mb-3">{purchase.emoji}</div>
+            <h3 className="text-2xl font-bold mb-1">Congrats! (not really)</h3>
+            <p className="opacity-80 mb-4">
+              You "bought" a <strong>{purchase.name}</strong> for{" "}
+              <strong>{fmtMoney(purchase.price)}</strong>.
+            </p>
+            <p className="text-xs opacity-60 mb-5">
+              Estimated delivery: never. This car does not exist.
+            </p>
+            <button
+              onClick={() => setPurchase(null)}
+              className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
+            >
+              Cool, thanks
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
