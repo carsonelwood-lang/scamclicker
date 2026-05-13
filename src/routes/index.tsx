@@ -1,266 +1,299 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Super Cars For Sale — Showroom" },
+      { title: "Baby Boxer 9000 — Harmless Parody Game" },
       {
         name: "description",
         content:
-          "Browse real supercars and 'buy' them with imaginary money. Showroom-style spec sheets and pretend purchases.",
+          "A silly parody game where you press S to box cartoon babies. Not real. Level up your imaginary power.",
       },
     ],
   }),
 });
 
-type Car = {
-  id: string;
-  name: string;
-  tagline: string;
-  price: number;
-  hp: number;
-  topSpeed: number;
-  zeroTo60: number;
-  image: string;
-};
-
-// Real cars, real specs (approx). Photos via Unsplash.
-const CARS: Car[] = [
-  {
-    id: "1",
-    name: "Lamborghini Aventador SVJ",
-    tagline: "6.5L naturally aspirated V12",
-    price: 517_770,
-    hp: 759,
-    topSpeed: 350,
-    zeroTo60: 2.8,
-    image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80",
-  },
-  {
-    id: "2",
-    name: "Ferrari SF90 Stradale",
-    tagline: "Plug-in hybrid, 4WD, twin-turbo V8",
-    price: 524_275,
-    hp: 986,
-    topSpeed: 340,
-    zeroTo60: 2.5,
-    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80",
-  },
-  {
-    id: "3",
-    name: "Bugatti Chiron Super Sport",
-    tagline: "Quad-turbo W16, 1600 hp",
-    price: 3_825_000,
-    hp: 1577,
-    topSpeed: 440,
-    zeroTo60: 2.4,
-    image: "https://images.unsplash.com/photo-1607603750909-408e193868c7?w=1200&q=80",
-  },
-  {
-    id: "4",
-    name: "McLaren 765LT",
-    tagline: "Long Tail, twin-turbo V8",
-    price: 382_500,
-    hp: 755,
-    topSpeed: 330,
-    zeroTo60: 2.7,
-    image: "https://images.unsplash.com/photo-1612825173281-9a193378527e?w=1200&q=80",
-  },
-  {
-    id: "5",
-    name: "Porsche 911 GT3 RS",
-    tagline: "Track weapon, 9000 rpm flat-six",
-    price: 241_300,
-    hp: 518,
-    topSpeed: 296,
-    zeroTo60: 3.0,
-    image: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1200&q=80",
-  },
-  {
-    id: "6",
-    name: "Koenigsegg Jesko Absolut",
-    tagline: "Built for the highest speed possible",
-    price: 2_800_000,
-    hp: 1600,
-    topSpeed: 480,
-    zeroTo60: 2.5,
-    image: "https://images.unsplash.com/photo-1611821064430-0d40291d0f0b?w=1200&q=80",
-  },
-  {
-    id: "7",
-    name: "Aston Martin Valkyrie",
-    tagline: "F1-derived 6.5L V12 hybrid",
-    price: 3_000_000,
-    hp: 1160,
-    topSpeed: 354,
-    zeroTo60: 2.5,
-    image: "https://images.unsplash.com/photo-1626668893632-6f3a4466d22f?w=1200&q=80",
-  },
-  {
-    id: "8",
-    name: "Pagani Huayra R",
-    tagline: "Track-only, 6.0L V12, no turbos",
-    price: 2_600_000,
-    hp: 838,
-    topSpeed: 383,
-    zeroTo60: 2.7,
-    image: "https://images.unsplash.com/photo-1625231334168-35067f8853ed?w=1200&q=80",
-  },
-];
-
-const STARTING_BALANCE = 10_000_000;
-
-function fmtMoney(n: number) {
-  return "$" + n.toLocaleString("en-US");
+function fmt(n: number) {
+  if (n < 1000) return Math.floor(n).toString();
+  const u = ["", "K", "M", "B", "T"];
+  let i = 0;
+  while (n >= 1000 && i < u.length - 1) {
+    n /= 1000;
+    i++;
+  }
+  return n.toFixed(2) + u[i];
 }
 
+type Baby = {
+  id: number;
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  hit: number;
+};
+
+type Hit = { id: number; x: number; y: number; dmg: number; crit: boolean };
+
 function Index() {
-  const [balance, setBalance] = useState(STARTING_BALANCE);
-  const [garage, setGarage] = useState<Car[]>([]);
-  const [purchase, setPurchase] = useState<Car | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [score, setScore] = useState(0);
+  const [coins, setCoins] = useState(0);
+  const [power, setPower] = useState(1);
+  const [crit, setCrit] = useState(0); // crit chance %
+  const [combo, setCombo] = useState(0);
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [shake, setShake] = useState(false);
+  const nextId = useRef(1);
+  const comboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const buy = (car: Car) => {
-    if (balance < car.price) {
-      setError(`Not enough balance for the ${car.name}.`);
-      setTimeout(() => setError(null), 2500);
-      return;
-    }
-    setBalance((b) => b - car.price);
-    setGarage((g) => [...g, car]);
-    setPurchase(car);
-  };
+  const spawn = useCallback(() => {
+    setBabies((bs) => {
+      if (bs.length >= 6) return bs;
+      const id = nextId.current++;
+      const hp = 3 + Math.floor(Math.random() * 4);
+      return [
+        ...bs,
+        {
+          id,
+          x: 8 + Math.random() * 84,
+          y: 15 + Math.random() * 70,
+          hp,
+          maxHp: hp,
+          hit: 0,
+        },
+      ];
+    });
+  }, []);
 
-  const reset = () => {
-    setBalance(STARTING_BALANCE);
-    setGarage([]);
-  };
+  useEffect(() => {
+    spawn();
+    spawn();
+    spawn();
+    const t = setInterval(spawn, 1400);
+    return () => clearInterval(t);
+  }, [spawn]);
+
+  const punch = useCallback(() => {
+    setBabies((bs) => {
+      if (bs.length === 0) return bs;
+      const target = bs[0];
+      const isCrit = Math.random() * 100 < crit;
+      const dmg = isCrit ? power * 3 : power;
+      const newHp = target.hp - dmg;
+
+      const hitId = nextId.current++;
+      setHits((h) => [
+        ...h,
+        { id: hitId, x: target.x, y: target.y, dmg, crit: isCrit },
+      ]);
+      setTimeout(
+        () => setHits((h) => h.filter((x) => x.id !== hitId)),
+        700,
+      );
+
+      setShake(true);
+      setTimeout(() => setShake(false), 90);
+
+      setCombo((c) => c + 1);
+      if (comboTimer.current) clearTimeout(comboTimer.current);
+      comboTimer.current = setTimeout(() => setCombo(0), 1500);
+
+      if (newHp <= 0) {
+        setScore((s) => s + dmg + 5);
+        setCoins((c) => c + 1 + Math.floor(power / 4));
+        return bs.slice(1).map((b, i) =>
+          i === 0 ? b : b,
+        );
+      }
+      return bs.map((b) =>
+        b.id === target.id
+          ? { ...b, hp: newHp, hit: Date.now() }
+          : b,
+      );
+    });
+    setScore((s) => s + power);
+  }, [power, crit]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        punch();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [punch]);
+
+  const upgrades = [
+    {
+      id: "power",
+      name: "💪 Punch Power +1",
+      cost: Math.ceil(10 * Math.pow(1.4, power - 1)),
+      buy: () => setPower((p) => p + 1),
+    },
+    {
+      id: "crit",
+      name: "🎯 Crit Chance +5%",
+      cost: Math.ceil(25 * Math.pow(1.5, crit / 5)),
+      disabled: crit >= 80,
+      buy: () => setCrit((c) => Math.min(80, c + 5)),
+    },
+  ];
 
   return (
-    <div className="min-h-screen text-foreground marble-bg">
-      <header className="border-b border-foreground/20 px-6 py-5 flex flex-wrap items-center justify-between gap-4 bg-background/70 backdrop-blur-sm">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            SUPER CARS FOR SALE
-          </h1>
-          <p className="text-sm opacity-70">The Showroom</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-xs opacity-60">BALANCE</div>
-            <div className="text-xl font-bold tabular-nums">{fmtMoney(balance)}</div>
-          </div>
-          <button
-            onClick={reset}
-            className="border border-foreground/40 hover:bg-foreground/10 px-3 py-2 text-sm rounded cursor-pointer"
-          >
-            Reset
-          </button>
+    <div className="min-h-screen bg-background text-foreground font-mono">
+      <div className="border-b border-foreground/30 bg-foreground/5 px-4 py-2 text-center text-xs">
+        ⚠️ PARODY GAME — Cartoon babies only. No real babies harmed. It's a
+        joke.
+      </div>
+
+      <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap gap-4 items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">
+          <span className="opacity-60">$</span> ./baby-boxer-9000.exe
+        </h1>
+        <div className="text-sm opacity-80">
+          Press <kbd className="border border-foreground/40 px-2 py-0.5 rounded">S</kbd> to box
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
-        {error && (
-          <div className="mb-4 border border-foreground/40 bg-foreground/10 px-4 py-2 rounded text-sm">
-            {error}
-          </div>
-        )}
-
-        <section className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
-            🏁 The Showroom
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CARS.map((car) => (
-              <article
-                key={car.id}
-                className="border border-foreground/30 rounded-lg overflow-hidden hover:border-foreground/60 transition flex flex-col"
-              >
-                <div className="aspect-[16/10] overflow-hidden bg-foreground/5">
-                  <img
-                    src={car.image}
-                    alt={car.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-4 flex-1 flex flex-col">
-                  <h3 className="font-bold text-lg leading-tight">{car.name}</h3>
-                  <p className="text-xs opacity-70 mb-3">{car.tagline}</p>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-4">
-                    <div><div className="opacity-60">HP</div><div className="font-bold">{car.hp}</div></div>
-                    <div><div className="opacity-60">TOP</div><div className="font-bold">{car.topSpeed} km/h</div></div>
-                    <div><div className="opacity-60">0–60</div><div className="font-bold">{car.zeroTo60}s</div></div>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between gap-2">
-                    <div className="font-bold tabular-nums">{fmtMoney(car.price)}</div>
-                    <button
-                      onClick={() => buy(car)}
-                      className="border border-foreground/40 hover:bg-foreground hover:text-background px-3 py-1.5 rounded text-sm font-bold cursor-pointer transition"
-                    >
-                      Buy
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
+      <main className="grid lg:grid-cols-[1fr_320px] gap-6 p-4 lg:p-6 max-w-7xl mx-auto">
         <section>
-          <h2 className="text-xl font-bold mb-4 border-b border-foreground/20 pb-2">
-            🅿️ Your Garage ({garage.length})
-          </h2>
-          {garage.length === 0 ? (
-            <p className="text-sm opacity-60">Empty. Buy a car above.</p>
-          ) : (
-            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {garage.map((car, i) => (
-                <li key={i} className="border border-foreground/30 rounded p-3 flex items-center gap-3">
-                  <img src={car.image} alt={car.name} className="w-16 h-12 object-cover rounded" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold truncate">{car.name}</div>
-                    <div className="text-xs opacity-70">{fmtMoney(car.price)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <p className="text-xs opacity-50 mt-12 text-center max-w-xl mx-auto">
-          Showroom demo — purchases are simulated and no payment is processed.
-        </p>
-      </main>
-
-      {purchase && (
-        <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-          onClick={() => setPurchase(null)}
-        >
-          <div
-            className="bg-background border-2 border-foreground/60 rounded-lg overflow-hidden max-w-md w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img src={purchase.image} alt={purchase.name} className="w-full aspect-[16/10] object-cover" />
-            <div className="p-6 text-center">
-              <h3 className="text-2xl font-bold mb-1">It's yours.</h3>
-              <p className="opacity-80 mb-4">
-                You bought a <strong>{purchase.name}</strong> for{" "}
-                <strong>{fmtMoney(purchase.price)}</strong>.
-              </p>
-              <button
-                onClick={() => setPurchase(null)}
-                className="border border-foreground/40 hover:bg-foreground hover:text-background px-4 py-2 rounded font-bold cursor-pointer transition"
-              >
-                Add to garage
-              </button>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-center text-sm">
+            <div className="border border-foreground/30 rounded p-2">
+              <div className="opacity-60 text-xs">SCORE</div>
+              <div className="text-lg font-bold tabular-nums">{fmt(score)}</div>
+            </div>
+            <div className="border border-foreground/30 rounded p-2">
+              <div className="opacity-60 text-xs">COINS</div>
+              <div className="text-lg font-bold tabular-nums">{fmt(coins)}</div>
+            </div>
+            <div className="border border-foreground/30 rounded p-2">
+              <div className="opacity-60 text-xs">POWER</div>
+              <div className="text-lg font-bold tabular-nums">{power}</div>
+            </div>
+            <div className="border border-foreground/30 rounded p-2">
+              <div className="opacity-60 text-xs">CRIT</div>
+              <div className="text-lg font-bold tabular-nums">{crit}%</div>
             </div>
           </div>
-        </div>
-      )}
+
+          <div
+            className={`relative w-full aspect-[4/3] border-2 border-foreground/40 rounded-lg overflow-hidden bg-foreground/5 ${
+              shake ? "translate-x-0.5 -translate-y-0.5" : ""
+            } transition-transform`}
+          >
+            {/* ring */}
+            <div className="absolute inset-4 border border-dashed border-foreground/30 rounded" />
+
+            {babies.map((b, i) => (
+              <div
+                key={b.id}
+                className="absolute -translate-x-1/2 -translate-y-1/2 select-none"
+                style={{ left: `${b.x}%`, top: `${b.y}%` }}
+              >
+                <div
+                  className={`text-5xl transition-transform ${
+                    Date.now() - b.hit < 100 ? "scale-75 rotate-12" : "scale-100"
+                  } ${i === 0 ? "drop-shadow-[0_0_12px_oklch(0.92_0.18_145/0.7)]" : "opacity-70"}`}
+                >
+                  👶
+                </div>
+                <div className="mt-1 w-12 h-1.5 bg-foreground/20 rounded overflow-hidden">
+                  <div
+                    className="h-full bg-foreground transition-all"
+                    style={{ width: `${(b.hp / b.maxHp) * 100}%` }}
+                  />
+                </div>
+                {i === 0 && (
+                  <div className="text-[10px] text-center opacity-70 mt-0.5">
+                    TARGET
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {hits.map((h) => (
+              <div
+                key={h.id}
+                className={`absolute -translate-x-1/2 pointer-events-none font-bold animate-[float_0.7s_ease-out_forwards] ${
+                  h.crit ? "text-3xl" : "text-xl"
+                }`}
+                style={{ left: `${h.x}%`, top: `${h.y}%` }}
+              >
+                {h.crit ? `CRIT! -${h.dmg}` : `-${h.dmg}`}
+              </div>
+            ))}
+
+            {combo > 1 && (
+              <div className="absolute top-2 right-3 text-sm font-bold opacity-80">
+                COMBO ×{combo}
+              </div>
+            )}
+
+            {babies.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-sm opacity-60">
+                spawning...
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={punch}
+            className="mt-4 w-full border border-foreground/40 hover:bg-foreground/10 active:scale-95 transition py-3 rounded font-bold cursor-pointer"
+          >
+            👊 BOX [S]
+          </button>
+
+          <p className="mt-4 text-xs opacity-60 text-center">
+            This is a cartoon parody. Babies are emoji. No real harm. Please
+            don't actually box babies, that would be very bad.
+          </p>
+        </section>
+
+        <aside>
+          <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2">
+            🛒 /upgrades
+          </h2>
+          <div className="space-y-2">
+            {upgrades.map((u) => {
+              const can = coins >= u.cost && !u.disabled;
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => {
+                    if (!can) return;
+                    setCoins((c) => c - u.cost);
+                    u.buy();
+                  }}
+                  disabled={!can}
+                  className={`w-full text-left border border-foreground/30 p-3 rounded transition ${
+                    can
+                      ? "hover:bg-foreground/15 cursor-pointer"
+                      : "opacity-40 cursor-not-allowed"
+                  }`}
+                >
+                  <div className="font-bold">{u.name}</div>
+                  <div className="text-xs opacity-70 mt-1">
+                    {u.disabled ? "MAXED" : `cost: ${u.cost} coins`}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+      </main>
+
+      <style>{`
+        @keyframes float {
+          0% { transform: translate(-50%, 0); opacity: 1; }
+          100% { transform: translate(-50%, -60px); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
