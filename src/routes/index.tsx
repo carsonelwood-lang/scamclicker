@@ -1,297 +1,177 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Baby Boxer 9000 — Harmless Parody Game" },
+      { title: "Fake Scam Clicker — A Harmless Parody Game" },
       {
         name: "description",
         content:
-          "A silly parody game where you press S to box cartoon babies. Not real. Level up your imaginary power.",
+          "A satirical cookie-clicker style game. Click the computer, earn fake internet points. No actual scamming — it's a joke.",
       },
     ],
   }),
 });
 
+type Upgrade = {
+  id: string;
+  name: string;
+  desc: string;
+  baseCost: number;
+  cps: number;
+  icon: string;
+};
+
+const UPGRADES: Upgrade[] = [
+  { id: "popup", name: "Suspicious Pop-up", desc: "Definitely not a virus", baseCost: 15, cps: 0.2, icon: "🪟" },
+  { id: "intern", name: "Unpaid Intern", desc: "Clicks the mouse for you", baseCost: 100, cps: 1.5, icon: "🧑‍💻" },
+  { id: "bot", name: "Spam Bot", desc: "Sends 'Hello dear friend' emails", baseCost: 1100, cps: 8, icon: "🤖" },
+  { id: "prince", name: "Nigerian Prince", desc: "He just needs your help, please", baseCost: 12000, cps: 47, icon: "👑" },
+  { id: "crypto", name: "Crypto Bro", desc: "Trust me bro it's going to the moon", baseCost: 130000, cps: 260, icon: "🚀" },
+  { id: "ai", name: "AI Influencer", desc: "Sells you a $999 course on AI", baseCost: 1400000, cps: 1400, icon: "🧠" },
+];
+
 function fmt(n: number) {
-  if (n < 1000) return Math.floor(n).toString();
-  const u = ["", "K", "M", "B", "T"];
+  if (n < 1000) return n.toFixed(n < 10 ? 1 : 0);
+  const units = ["", "K", "M", "B", "T", "Qa", "Qi"];
   let i = 0;
-  while (n >= 1000 && i < u.length - 1) {
+  while (n >= 1000 && i < units.length - 1) {
     n /= 1000;
     i++;
   }
-  return n.toFixed(2) + u[i];
+  return n.toFixed(2) + units[i];
 }
 
-type Baby = {
-  id: number;
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-  hit: number;
-};
-
-type Hit = { id: number; x: number; y: number; dmg: number; crit: boolean };
-
 function Index() {
-  const [score, setScore] = useState(0);
-  const [coins, setCoins] = useState(0);
-  const [power, setPower] = useState(1);
-  const [crit, setCrit] = useState(0); // crit chance %
-  const [combo, setCombo] = useState(0);
-  const [babies, setBabies] = useState<Baby[]>([]);
-  const [hits, setHits] = useState<Hit[]>([]);
-  const [shake, setShake] = useState(false);
-  const nextId = useRef(1);
-  const comboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [points, setPoints] = useState(0);
+  const [owned, setOwned] = useState<Record<string, number>>({});
+  const [floats, setFloats] = useState<{ id: number; x: number; y: number; v: number }[]>([]);
+  const [pulse, setPulse] = useState(false);
+  const floatId = useRef(0);
 
-  const spawn = useCallback(() => {
-    setBabies((bs) => {
-      if (bs.length >= 6) return bs;
-      const id = nextId.current++;
-      const hp = 3 + Math.floor(Math.random() * 4);
-      return [
-        ...bs,
-        {
-          id,
-          x: 8 + Math.random() * 84,
-          y: 15 + Math.random() * 70,
-          hp,
-          maxHp: hp,
-          hit: 0,
-        },
-      ];
-    });
-  }, []);
+  const cps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
+  const perClick = 1 + Math.floor(cps * 0.05);
 
   useEffect(() => {
-    spawn();
-    spawn();
-    spawn();
-    const t = setInterval(spawn, 1400);
+    const t = setInterval(() => setPoints((p) => p + cps / 10), 100);
     return () => clearInterval(t);
-  }, [spawn]);
+  }, [cps]);
 
-  const punch = useCallback(() => {
-    setBabies((bs) => {
-      if (bs.length === 0) return bs;
-      const target = bs[0];
-      const isCrit = Math.random() * 100 < crit;
-      const dmg = isCrit ? power * 3 : power;
-      const newHp = target.hp - dmg;
+  const click = (e: React.MouseEvent) => {
+    setPoints((p) => p + perClick);
+    setPulse(true);
+    setTimeout(() => setPulse(false), 80);
+    const id = ++floatId.current;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setFloats((f) => [
+      ...f,
+      { id, x: e.clientX - rect.left, y: e.clientY - rect.top, v: perClick },
+    ]);
+    setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 900);
+  };
 
-      const hitId = nextId.current++;
-      setHits((h) => [
-        ...h,
-        { id: hitId, x: target.x, y: target.y, dmg, crit: isCrit },
-      ]);
-      setTimeout(
-        () => setHits((h) => h.filter((x) => x.id !== hitId)),
-        700,
-      );
-
-      setShake(true);
-      setTimeout(() => setShake(false), 90);
-
-      setCombo((c) => c + 1);
-      if (comboTimer.current) clearTimeout(comboTimer.current);
-      comboTimer.current = setTimeout(() => setCombo(0), 1500);
-
-      if (newHp <= 0) {
-        setScore((s) => s + dmg + 5);
-        setCoins((c) => c + 1 + Math.floor(power / 4));
-        return bs.slice(1).map((b, i) =>
-          i === 0 ? b : b,
-        );
-      }
-      return bs.map((b) =>
-        b.id === target.id
-          ? { ...b, hp: newHp, hit: Date.now() }
-          : b,
-      );
-    });
-    setScore((s) => s + power);
-  }, [power, crit]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      if (e.key === "s" || e.key === "S") {
-        e.preventDefault();
-        punch();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [punch]);
-
-  const upgrades = [
-    {
-      id: "power",
-      name: "💪 Punch Power +1",
-      cost: Math.ceil(10 * Math.pow(1.4, power - 1)),
-      buy: () => setPower((p) => p + 1),
-    },
-    {
-      id: "crit",
-      name: "🎯 Crit Chance +5%",
-      cost: Math.ceil(25 * Math.pow(1.5, crit / 5)),
-      disabled: crit >= 80,
-      buy: () => setCrit((c) => Math.min(80, c + 5)),
-    },
-  ];
+  const cost = (u: Upgrade) => Math.ceil(u.baseCost * Math.pow(1.15, owned[u.id] ?? 0));
+  const buy = (u: Upgrade) => {
+    const c = cost(u);
+    if (points < c) return;
+    setPoints((p) => p - c);
+    setOwned((o) => ({ ...o, [u.id]: (o[u.id] ?? 0) + 1 }));
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono">
       <div className="border-b border-foreground/30 bg-foreground/5 px-4 py-2 text-center text-xs">
-        ⚠️ PARODY GAME — Cartoon babies only. No real babies harmed. It's a
-        joke.
+        ⚠️ PARODY GAME — No real scamming. No real money. Just clicks.
       </div>
 
-      <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap gap-4 items-center justify-between">
+      <header className="px-6 py-4 border-b border-foreground/20">
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="opacity-60">$</span> ./baby-boxer-9000.exe
+          <span className="opacity-60">$</span> ./fake-scam-clicker.exe
         </h1>
-        <div className="text-sm opacity-80">
-          Press <kbd className="border border-foreground/40 px-2 py-0.5 rounded">S</kbd> to box
-        </div>
       </header>
 
-      <main className="grid lg:grid-cols-[1fr_320px] gap-6 p-4 lg:p-6 max-w-7xl mx-auto">
-        <section>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-center text-sm">
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">SCORE</div>
-              <div className="text-lg font-bold tabular-nums">{fmt(score)}</div>
+      <main className="grid lg:grid-cols-[1fr_400px] gap-6 p-6 max-w-7xl mx-auto">
+        {/* Click area */}
+        <section className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="text-center mb-6">
+            <div className="text-sm opacity-60">FAKE INTERNET POINTS</div>
+            <div className="text-6xl font-bold tabular-nums">{fmt(points)}</div>
+            <div className="text-sm opacity-70 mt-1">
+              {fmt(cps)}/sec · +{perClick}/click
             </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">COINS</div>
-              <div className="text-lg font-bold tabular-nums">{fmt(coins)}</div>
-            </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">POWER</div>
-              <div className="text-lg font-bold tabular-nums">{power}</div>
-            </div>
-            <div className="border border-foreground/30 rounded p-2">
-              <div className="opacity-60 text-xs">CRIT</div>
-              <div className="text-lg font-bold tabular-nums">{crit}%</div>
-            </div>
-          </div>
-
-          <div
-            className={`relative w-full aspect-[4/3] border-2 border-foreground/40 rounded-lg overflow-hidden bg-foreground/5 ${
-              shake ? "translate-x-0.5 -translate-y-0.5" : ""
-            } transition-transform`}
-          >
-            {/* ring */}
-            <div className="absolute inset-4 border border-dashed border-foreground/30 rounded" />
-
-            {babies.map((b, i) => (
-              <div
-                key={b.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2 select-none"
-                style={{ left: `${b.x}%`, top: `${b.y}%` }}
-              >
-                <div
-                  className={`text-5xl transition-transform ${
-                    Date.now() - b.hit < 100 ? "scale-75 rotate-12" : "scale-100"
-                  } ${i === 0 ? "drop-shadow-[0_0_12px_oklch(0.92_0.18_145/0.7)]" : "opacity-70"}`}
-                >
-                  👶
-                </div>
-                <div className="mt-1 w-12 h-1.5 bg-foreground/20 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-foreground transition-all"
-                    style={{ width: `${(b.hp / b.maxHp) * 100}%` }}
-                  />
-                </div>
-                {i === 0 && (
-                  <div className="text-[10px] text-center opacity-70 mt-0.5">
-                    TARGET
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {hits.map((h) => (
-              <div
-                key={h.id}
-                className={`absolute -translate-x-1/2 pointer-events-none font-bold animate-[float_0.7s_ease-out_forwards] ${
-                  h.crit ? "text-3xl" : "text-xl"
-                }`}
-                style={{ left: `${h.x}%`, top: `${h.y}%` }}
-              >
-                {h.crit ? `CRIT! -${h.dmg}` : `-${h.dmg}`}
-              </div>
-            ))}
-
-            {combo > 1 && (
-              <div className="absolute top-2 right-3 text-sm font-bold opacity-80">
-                COMBO ×{combo}
-              </div>
-            )}
-
-            {babies.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm opacity-60">
-                spawning...
-              </div>
-            )}
           </div>
 
           <button
-            onClick={punch}
-            className="mt-4 w-full border border-foreground/40 hover:bg-foreground/10 active:scale-95 transition py-3 rounded font-bold cursor-pointer"
+            onClick={click}
+            className={`relative select-none text-[12rem] leading-none transition-transform ${
+              pulse ? "scale-95" : "scale-100"
+            } hover:drop-shadow-[0_0_30px_oklch(0.92_0.18_145/0.6)] cursor-pointer`}
+            aria-label="Click to scam (not really)"
           >
-            👊 BOX [S]
+            🖥️
+            {floats.map((f) => (
+              <span
+                key={f.id}
+                className="pointer-events-none absolute text-2xl font-bold animate-[float_0.9s_ease-out_forwards]"
+                style={{ left: f.x, top: f.y }}
+              >
+                +{f.v}
+              </span>
+            ))}
           </button>
 
-          <p className="mt-4 text-xs opacity-60 text-center">
-            This is a cartoon parody. Babies are emoji. No real harm. Please
-            don't actually box babies, that would be very bad.
-          </p>
+          <div className="mt-8 text-center text-sm opacity-70 max-w-md">
+            Click the computer to "scam." Buy upgrades to "scam" automatically.
+            None of this does anything in real life. It's a joke. Please don't actually scam people.
+          </div>
         </section>
 
-        <aside>
+        {/* Shop */}
+        <aside className="space-y-2">
           <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2">
-            🛒 /upgrades
+            📂 /shady_upgrades
           </h2>
-          <div className="space-y-2">
-            {upgrades.map((u) => {
-              const can = coins >= u.cost && !u.disabled;
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    if (!can) return;
-                    setCoins((c) => c - u.cost);
-                    u.buy();
-                  }}
-                  disabled={!can}
-                  className={`w-full text-left border border-foreground/30 p-3 rounded transition ${
-                    can
-                      ? "hover:bg-foreground/15 cursor-pointer"
-                      : "opacity-40 cursor-not-allowed"
-                  }`}
-                >
-                  <div className="font-bold">{u.name}</div>
-                  <div className="text-xs opacity-70 mt-1">
-                    {u.disabled ? "MAXED" : `cost: ${u.cost} coins`}
+          {UPGRADES.map((u) => {
+            const c = cost(u);
+            const can = points >= c;
+            const n = owned[u.id] ?? 0;
+            return (
+              <button
+                key={u.id}
+                onClick={() => buy(u)}
+                disabled={!can}
+                className={`w-full text-left border border-foreground/30 p-3 rounded transition-all ${
+                  can
+                    ? "bg-foreground/10 hover:bg-foreground/20 cursor-pointer hover:border-foreground/60"
+                    : "opacity-40 cursor-not-allowed"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">{u.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline gap-2">
+                      <span className="font-bold truncate">{u.name}</span>
+                      <span className="text-xs opacity-60">×{n}</span>
+                    </div>
+                    <div className="text-xs opacity-70 truncate">{u.desc}</div>
+                    <div className="text-sm mt-1 flex justify-between">
+                      <span>cost: {fmt(c)}</span>
+                      <span className="opacity-70">+{u.cps}/s</span>
+                    </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
+                </div>
+              </button>
+            );
+          })}
         </aside>
       </main>
 
       <style>{`
         @keyframes float {
           0% { transform: translate(-50%, 0); opacity: 1; }
-          100% { transform: translate(-50%, -60px); opacity: 0; }
+          100% { transform: translate(-50%, -80px); opacity: 0; }
         }
       `}</style>
     </div>
