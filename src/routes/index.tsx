@@ -32,7 +32,7 @@ const CARS: Car[] = [
     id: "1",
     name: "Lamborghini Aventador SVJ",
     tagline: "6.5L naturally aspirated V12",
-    price: 517_000,
+    price: 517_770,
     hp: 759,
     topSpeed: 350,
     zeroTo60: 2.8,
