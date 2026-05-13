@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Vroomly — Supercar Showroom" },
+      { title: "Super Cars For Sale — Showroom" },
       {
         name: "description",
         content:
@@ -139,13 +139,13 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-foreground/20 px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen text-foreground marble-bg">
+      <header className="border-b border-foreground/20 px-6 py-5 flex flex-wrap items-center justify-between gap-4 bg-background/70 backdrop-blur-sm">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            VROOMLY<span className="opacity-60">™</span>
+            SUPER CARS FOR SALE
           </h1>
-          <p className="text-sm opacity-70">The Supercar Showroom</p>
+          <p className="text-sm opacity-70">The Showroom</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
