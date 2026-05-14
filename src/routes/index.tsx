@@ -60,18 +60,31 @@ function Index() {
   const [cheatMsg, setCheatMsg] = useState("");
   const floatId = useRef(0);
 
+  const grant = (amount: number) => {
+    setOwned((o) => {
+      const next = { ...o };
+      for (const u of UPGRADES) next[u.id] = (next[u.id] ?? 0) + amount;
+      return next;
+    });
+  };
+
   const submitCheat = (e: React.FormEvent) => {
     e.preventDefault();
     const code = cheat.trim().toLowerCase();
+    if (code === "") return;
     if (code === "100") {
-      setOwned((o) => {
-        const next = { ...o };
-        for (const u of UPGRADES) next[u.id] = (next[u.id] ?? 0) + 100;
-        return next;
-      });
-      setCheatMsg("✅ +100 of everything granted");
-    } else if (code === "") {
-      return;
+      grant(100);
+      setCheatMsg("✅ +100 of everything");
+    } else if (code === "200") {
+      grant(200);
+      setCheatMsg("✅ +200 of everything");
+    } else if (code === "500") {
+      grant(500);
+      setCheatMsg("✅ +500 of everything");
+    } else if (code === "godmode") {
+      grant(9999);
+      setPoints((p) => p + 1e15);
+      setCheatMsg("🔱 GODMODE ACTIVATED");
     } else {
       setCheatMsg("❌ invalid code");
     }
