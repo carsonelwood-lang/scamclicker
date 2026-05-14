@@ -56,7 +56,28 @@ function Index() {
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [floats, setFloats] = useState<{ id: number; x: number; y: number; v: number }[]>([]);
   const [pulse, setPulse] = useState(false);
+  const [cheat, setCheat] = useState("");
+  const [cheatMsg, setCheatMsg] = useState("");
   const floatId = useRef(0);
+
+  const submitCheat = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = cheat.trim().toLowerCase();
+    if (code === "100") {
+      setOwned((o) => {
+        const next = { ...o };
+        for (const u of UPGRADES) next[u.id] = (next[u.id] ?? 0) + 100;
+        return next;
+      });
+      setCheatMsg("✅ +100 of everything granted");
+    } else if (code === "") {
+      return;
+    } else {
+      setCheatMsg("❌ invalid code");
+    }
+    setCheat("");
+    setTimeout(() => setCheatMsg(""), 2000);
+  };
 
   const cps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
   const perClick = 1 + Math.floor(cps * 0.05);
@@ -93,10 +114,26 @@ function Index() {
         ⚠️ PARODY GAME — No real scamming. No real money. Just clicks.
       </div>
 
-      <header className="px-6 py-4 border-b border-foreground/20">
+      <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="opacity-60">$</span> ./fake-scam-clicker.exe
         </h1>
+        <form onSubmit={submitCheat} className="flex items-center gap-2">
+          <span className="text-xs opacity-60">cheat:</span>
+          <input
+            value={cheat}
+            onChange={(e) => setCheat(e.target.value)}
+            placeholder="enter code…"
+            className="bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-sm font-mono outline-none focus:border-foreground/60 w-36"
+          />
+          <button
+            type="submit"
+            className="border border-foreground/30 rounded px-3 py-1 text-sm hover:bg-foreground/10"
+          >
+            run
+          </button>
+          {cheatMsg && <span className="text-xs opacity-80">{cheatMsg}</span>}
+        </form>
       </header>
 
       <main className="grid lg:grid-cols-[1fr_400px] gap-6 p-6 max-w-7xl mx-auto">
