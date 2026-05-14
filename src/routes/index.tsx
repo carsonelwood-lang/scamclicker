@@ -31,6 +31,13 @@ const UPGRADES: Upgrade[] = [
   { id: "prince", name: "Nigerian Prince", desc: "He just needs your help, please", baseCost: 12000, cps: 47, icon: "👑" },
   { id: "crypto", name: "Crypto Bro", desc: "Trust me bro it's going to the moon", baseCost: 130000, cps: 260, icon: "🚀" },
   { id: "ai", name: "AI Influencer", desc: "Sells you a $999 course on AI", baseCost: 1400000, cps: 1400, icon: "🧠" },
+  { id: "nft", name: "NFT Project", desc: "Right-click save? You wouldn't.", baseCost: 20000000, cps: 7800, icon: "🖼️" },
+  { id: "rugpull", name: "Rug Pull DAO", desc: "Decentralized exit liquidity", baseCost: 330000000, cps: 44000, icon: "🪤" },
+  { id: "ponzi", name: "Ponzi Pyramid", desc: "It's a 'community', okay?", baseCost: 5100000000, cps: 260000, icon: "🔺" },
+  { id: "telemarketer", name: "Robo-Telemarketer", desc: "About your car's extended warranty", baseCost: 75000000000, cps: 1600000, icon: "📞" },
+  { id: "phisher", name: "Phishing Farm", desc: "Click here to claim your prize", baseCost: 1000000000000, cps: 10000000, icon: "🎣" },
+  { id: "shellco", name: "Offshore Shell Co.", desc: "Cayman Islands, baby", baseCost: 14000000000000, cps: 65000000, icon: "🏝️" },
+  { id: "gov", name: "Corrupt Politician", desc: "A small 'consulting fee'", baseCost: 170000000000000, cps: 430000000, icon: "🏛️" },
 ];
 
 function fmt(n: number) {
