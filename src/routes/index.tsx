@@ -56,7 +56,28 @@ function Index() {
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [floats, setFloats] = useState<{ id: number; x: number; y: number; v: number }[]>([]);
   const [pulse, setPulse] = useState(false);
+  const [cheat, setCheat] = useState("");
+  const [cheatMsg, setCheatMsg] = useState("");
   const floatId = useRef(0);
+
+  const submitCheat = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = cheat.trim().toLowerCase();
+    if (code === "100") {
+      setOwned((o) => {
+        const next = { ...o };
+        for (const u of UPGRADES) next[u.id] = (next[u.id] ?? 0) + 100;
+        return next;
+      });
+      setCheatMsg("✅ +100 of everything granted");
+    } else if (code === "") {
+      return;
+    } else {
+      setCheatMsg("❌ invalid code");
+    }
+    setCheat("");
+    setTimeout(() => setCheatMsg(""), 2000);
+  };
 
   const cps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
   const perClick = 1 + Math.floor(cps * 0.05);
