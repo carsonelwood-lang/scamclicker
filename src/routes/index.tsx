@@ -113,7 +113,7 @@ function Index() {
     setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 900);
   };
 
-  const cost = (u: Upgrade) => Math.ceil(u.baseCost * Math.pow(1.15, owned[u.id] ?? 0));
+  const cost = (u: Upgrade) => u.baseCost;
   const buy = (u: Upgrade) => {
     const c = cost(u);
     if (points < c) return;
