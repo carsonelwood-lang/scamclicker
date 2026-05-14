@@ -114,10 +114,26 @@ function Index() {
         ⚠️ PARODY GAME — No real scamming. No real money. Just clicks.
       </div>
 
-      <header className="px-6 py-4 border-b border-foreground/20">
+      <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="opacity-60">$</span> ./fake-scam-clicker.exe
         </h1>
+        <form onSubmit={submitCheat} className="flex items-center gap-2">
+          <span className="text-xs opacity-60">cheat:</span>
+          <input
+            value={cheat}
+            onChange={(e) => setCheat(e.target.value)}
+            placeholder="enter code…"
+            className="bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-sm font-mono outline-none focus:border-foreground/60 w-36"
+          />
+          <button
+            type="submit"
+            className="border border-foreground/30 rounded px-3 py-1 text-sm hover:bg-foreground/10"
+          >
+            run
+          </button>
+          {cheatMsg && <span className="text-xs opacity-80">{cheatMsg}</span>}
+        </form>
       </header>
 
       <main className="grid lg:grid-cols-[1fr_400px] gap-6 p-6 max-w-7xl mx-auto">
