@@ -444,7 +444,8 @@ function Game({ session }: { session: Session }) {
     const broadcast = async (kind: string, payload: Record<string, unknown>) => {
       const { error } = await supabase
         .from("broadcasts")
-        .insert({ admin_id: userId, admin_name: username, kind, payload });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert({ admin_id: userId, admin_name: username, kind, payload: payload as any });
       if (error) showCmd("❌ " + error.message);
       else showCmd("✅ sent");
     };
