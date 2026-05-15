@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -9,7 +11,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "A satirical cookie-clicker style game. Click the computer, earn fake internet points. No actual scamming — it's a joke.",
+          "A satirical cookie-clicker style game with global chat. No actual scamming — it's a joke.",
       },
     ],
   }),
@@ -61,8 +63,9 @@ const UPGRADES: Upgrade[] = [
 ];
 
 function fmt(n: number) {
+  if (!isFinite(n)) return "∞";
   if (n < 1000) return n.toFixed(n < 10 ? 1 : 0);
-  const units = ["", "K", "M", "B", "T", "Qa", "Qi"];
+  const units = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
   let i = 0;
   while (n >= 1000 && i < units.length - 1) {
     n /= 1000;
@@ -71,54 +74,331 @@ function fmt(n: number) {
   return n.toFixed(2) + units[i];
 }
 
+type ChatMsg = {
+  id: string;
+  user_id: string;
+  username: string;
+  content: string;
+  is_admin: boolean;
+  created_at: string;
+};
+
 function Index() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground font-mono flex items-center justify-center">
+        loading…
+      </div>
+    );
+  }
+
+  return session ? <Game session={session} /> : <AuthScreen />;
+}
+
+function AuthScreen() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr("");
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { username: username.trim() || email.split("@")[0] },
+          },
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-mono flex items-center justify-center p-6">
+      <form onSubmit={submit} className="w-full max-w-sm border border-foreground/30 rounded p-6 space-y-4 bg-foreground/5">
+        <h1 className="text-2xl font-bold">
+          <span className="opacity-60">$</span> {mode === "login" ? "./login" : "./signup"}
+        </h1>
+        <div className="text-xs opacity-70 border-l-2 border-foreground/40 pl-2">
+          ⚠️ Parody game. The first person to sign up becomes the admin.
+        </div>
+        {mode === "signup" && (
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="username"
+            required
+            maxLength={32}
+            className="w-full bg-foreground/10 border border-foreground/30 rounded px-3 py-2 outline-none focus:border-foreground/60"
+          />
+        )}
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="email"
+          required
+          className="w-full bg-foreground/10 border border-foreground/30 rounded px-3 py-2 outline-none focus:border-foreground/60"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="password (min 6)"
+          required
+          minLength={6}
+          className="w-full bg-foreground/10 border border-foreground/30 rounded px-3 py-2 outline-none focus:border-foreground/60"
+        />
+        {err && <div className="text-xs text-red-400 break-words">{err}</div>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full border border-foreground/40 rounded px-3 py-2 hover:bg-foreground/10 disabled:opacity-50"
+        >
+          {busy ? "…" : mode === "login" ? "log in" : "sign up"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setErr("");
+            setMode(mode === "login" ? "signup" : "login");
+          }}
+          className="w-full text-xs opacity-70 hover:opacity-100 underline"
+        >
+          {mode === "login" ? "no account? sign up" : "have an account? log in"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Game({ session }: { session: Session }) {
+  const userId = session.user.id;
   const [points, setPoints] = useState(0);
   const [owned, setOwned] = useState<Record<string, number>>({});
+  const [username, setUsername] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [floats, setFloats] = useState<{ id: number; x: number; y: number; v: number }[]>([]);
   const [pulse, setPulse] = useState(false);
-  const [cheat, setCheat] = useState("");
-  const [cheatMsg, setCheatMsg] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [banner, setBanner] = useState<{ from: string; msg: string } | null>(null);
+  const [cmdMsg, setCmdMsg] = useState("");
   const floatId = useRef(0);
+  const stateRef = useRef({ points: 0, owned: {} as Record<string, number> });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
 
-  const grant = (amount: number) => {
-    setOwned((o) => {
-      const next = { ...o };
-      for (const u of UPGRADES) next[u.id] = (next[u.id] ?? 0) + amount;
-      return next;
-    });
-  };
+  // load profile + role
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const [{ data: prof }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("username, points, owned").eq("id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+      ]);
+      if (!mounted) return;
+      if (prof) {
+        setUsername(prof.username);
+        setPoints(Number(prof.points) || 0);
+        setOwned((prof.owned as Record<string, number>) || {});
+        stateRef.current = {
+          points: Number(prof.points) || 0,
+          owned: (prof.owned as Record<string, number>) || {},
+        };
+      }
+      setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+      loadedRef.current = true;
 
-  const submitCheat = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = cheat.trim().toLowerCase();
-    if (code === "") return;
-    if (code === "100") {
-      grant(100);
-      setCheatMsg("✅ +100 of everything");
-    } else if (code === "200") {
-      grant(200);
-      setCheatMsg("✅ +200 of everything");
-    } else if (code === "500") {
-      grant(500);
-      setCheatMsg("✅ +500 of everything");
-    } else if (code === "godmode") {
-      grant(9999);
-      setPoints((p) => p + 1e15);
-      setCheatMsg("🔱 GODMODE ACTIVATED");
-    } else {
-      setCheatMsg("❌ invalid code");
-    }
-    setCheat("");
-    setTimeout(() => setCheatMsg(""), 2000);
-  };
+      // mark online
+      await supabase
+        .from("profiles")
+        .update({ is_online: true, last_seen: new Date().toISOString() })
+        .eq("id", userId);
+
+      // load recent chat
+      const { data: msgs } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (msgs && mounted) setChatMsgs(msgs.reverse() as ChatMsg[]);
+
+      // online count
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("is_online", true);
+      if (mounted) setOnlineCount(count ?? 0);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
+  // sync state ref
+  useEffect(() => {
+    stateRef.current = { points, owned };
+  }, [points, owned]);
+
+  // periodic save + heartbeat
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (!loadedRef.current) return;
+      supabase
+        .from("profiles")
+        .update({
+          points: stateRef.current.points,
+          owned: stateRef.current.owned,
+          is_online: true,
+          last_seen: new Date().toISOString(),
+        })
+        .eq("id", userId);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [userId]);
+
+  // mark offline on unload
+  useEffect(() => {
+    const handler = () => {
+      // best-effort
+      supabase.from("profiles").update({ is_online: false }).eq("id", userId);
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      handler();
+    };
+  }, [userId]);
+
+  // realtime: chat + broadcasts + online count
+  useEffect(() => {
+    const chatCh = supabase
+      .channel("chat-room")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          setChatMsgs((m) => [...m, payload.new as ChatMsg].slice(-100));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "chat_messages" },
+        (payload) => {
+          setChatMsgs((m) => m.filter((x) => x.id !== (payload.old as { id: string }).id));
+        }
+      )
+      .subscribe();
+
+    const bcCh = supabase
+      .channel("broadcasts-room")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "broadcasts" },
+        (payload) => {
+          applyBroadcast(payload.new as { kind: string; payload: Record<string, unknown>; admin_name: string });
+        }
+      )
+      .subscribe();
+
+    const presenceCh = supabase
+      .channel("profiles-online")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        async () => {
+          const { count } = await supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("is_online", true);
+          setOnlineCount(count ?? 0);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(chatCh);
+      supabase.removeChannel(bcCh);
+      supabase.removeChannel(presenceCh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMsgs]);
 
   const cps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
   const perClick = 1 + Math.floor(cps * 0.05);
 
+  // tick
   useEffect(() => {
     const t = setInterval(() => setPoints((p) => p + cps / 10), 100);
     return () => clearInterval(t);
   }, [cps]);
+
+  const applyBroadcast = (b: { kind: string; payload: Record<string, unknown>; admin_name: string }) => {
+    const adminName = b.admin_name;
+    if (b.kind === "give_points") {
+      const amt = Number(b.payload.amount) || 0;
+      setPoints((p) => p + amt);
+      setBanner({ from: adminName, msg: `gave everyone +${fmt(amt)} points` });
+    } else if (b.kind === "give_all") {
+      const n = Number(b.payload.amount) || 0;
+      setOwned((o) => {
+        const nx = { ...o };
+        for (const u of UPGRADES) nx[u.id] = (nx[u.id] ?? 0) + n;
+        return nx;
+      });
+      setBanner({ from: adminName, msg: `gave everyone +${n} of every upgrade` });
+    } else if (b.kind === "godmode") {
+      setOwned((o) => {
+        const nx = { ...o };
+        for (const u of UPGRADES) nx[u.id] = (nx[u.id] ?? 0) + 9999;
+        return nx;
+      });
+      setPoints((p) => p + 1e15);
+      setBanner({ from: adminName, msg: `🔱 GODMODE for all` });
+    } else if (b.kind === "announce") {
+      setBanner({ from: adminName, msg: String(b.payload.text || "") });
+    } else if (b.kind === "reset") {
+      setPoints(0);
+      setOwned({});
+      setBanner({ from: adminName, msg: "wiped everyone's progress 💀" });
+    }
+    setTimeout(() => setBanner(null), 5000);
+  };
 
   const click = (e: React.MouseEvent) => {
     setPoints((p) => p + perClick);
@@ -126,19 +406,114 @@ function Index() {
     setTimeout(() => setPulse(false), 80);
     const id = ++floatId.current;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setFloats((f) => [
-      ...f,
-      { id, x: e.clientX - rect.left, y: e.clientY - rect.top, v: perClick },
-    ]);
+    setFloats((f) => [...f, { id, x: e.clientX - rect.left, y: e.clientY - rect.top, v: perClick }]);
     setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 900);
   };
 
-  const cost = (u: Upgrade) => u.baseCost;
   const buy = (u: Upgrade) => {
-    const c = cost(u);
-    if (points < c) return;
-    setPoints((p) => p - c);
+    if (points < u.baseCost) return;
+    setPoints((p) => p - u.baseCost);
     setOwned((o) => ({ ...o, [u.id]: (o[u.id] ?? 0) + 1 }));
+  };
+
+  const showCmd = useCallback((s: string) => {
+    setCmdMsg(s);
+    setTimeout(() => setCmdMsg(""), 3000);
+  }, []);
+
+  const runCommand = async (raw: string): Promise<boolean> => {
+    if (!raw.startsWith("/")) return false;
+    const parts = raw.slice(1).split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const arg = parts.slice(1).join(" ");
+
+    if (cmd === "help") {
+      showCmd(
+        isAdmin
+          ? "/give N · /giveall N · /godmode · /announce <msg> · /reset · /grantadmin <user> · /revokeadmin <user>"
+          : "no commands available — you're not admin"
+      );
+      return true;
+    }
+
+    if (!isAdmin) {
+      showCmd("❌ admin only");
+      return true;
+    }
+
+    const broadcast = async (kind: string, payload: Record<string, unknown>) => {
+      const { error } = await supabase
+        .from("broadcasts")
+        .insert({ admin_id: userId, admin_name: username, kind, payload });
+      if (error) showCmd("❌ " + error.message);
+      else showCmd("✅ sent");
+    };
+
+    if (cmd === "give") {
+      const n = Number(arg);
+      if (!n || n <= 0) return showCmd("usage: /give <amount>"), true;
+      await broadcast("give_points", { amount: n });
+    } else if (cmd === "giveall") {
+      const n = Number(arg);
+      if (!n || n <= 0) return showCmd("usage: /giveall <n>"), true;
+      await broadcast("give_all", { amount: n });
+    } else if (cmd === "godmode") {
+      await broadcast("godmode", {});
+    } else if (cmd === "announce") {
+      if (!arg) return showCmd("usage: /announce <msg>"), true;
+      await broadcast("announce", { text: arg });
+    } else if (cmd === "reset") {
+      await broadcast("reset", {});
+    } else if (cmd === "grantadmin") {
+      if (!arg) return showCmd("usage: /grantadmin <username>"), true;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", arg)
+        .maybeSingle();
+      if (!prof) return showCmd("❌ user not found"), true;
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: prof.id, role: "admin" });
+      showCmd(error ? "❌ " + error.message : `✅ ${arg} is now admin`);
+    } else if (cmd === "revokeadmin") {
+      if (!arg) return showCmd("usage: /revokeadmin <username>"), true;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", arg)
+        .maybeSingle();
+      if (!prof) return showCmd("❌ user not found"), true;
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", prof.id)
+        .eq("role", "admin");
+      showCmd(error ? "❌ " + error.message : `✅ revoked ${arg}`);
+    } else {
+      showCmd("❌ unknown command — try /help");
+    }
+    return true;
+  };
+
+  const sendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatInput("");
+    if (await runCommand(text)) return;
+    const { error } = await supabase.from("chat_messages").insert({
+      user_id: userId,
+      username,
+      content: text.slice(0, 500),
+      is_admin: isAdmin,
+    });
+    if (error) showCmd("❌ " + error.message);
+  };
+
+  const logout = async () => {
+    await supabase.from("profiles").update({ is_online: false }).eq("id", userId);
+    await supabase.auth.signOut();
   };
 
   return (
@@ -147,31 +522,34 @@ function Index() {
         ⚠️ PARODY GAME — No real scamming. No real money. Just clicks.
       </div>
 
+      {banner && (
+        <div className="bg-foreground text-background px-4 py-3 text-center font-bold animate-pulse">
+          📣 {banner.from}: {banner.msg}
+        </div>
+      )}
+
       <header className="px-6 py-4 border-b border-foreground/20 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="opacity-60">$</span> ./fake-scam-clicker.exe
         </h1>
-        <form onSubmit={submitCheat} className="flex items-center gap-2">
-          <span className="text-xs opacity-60">cheat:</span>
-          <input
-            value={cheat}
-            onChange={(e) => setCheat(e.target.value)}
-            placeholder="enter code…"
-            className="bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-sm font-mono outline-none focus:border-foreground/60 w-36"
-          />
+        <div className="flex items-center gap-3 text-sm">
+          <span className="opacity-70">🟢 {onlineCount} online</span>
+          <span>
+            {isAdmin && <span className="text-yellow-400 font-bold mr-1">[ADMIN]</span>}
+            <span className="opacity-80">{username}</span>
+          </span>
           <button
-            type="submit"
-            className="border border-foreground/30 rounded px-3 py-1 text-sm hover:bg-foreground/10"
+            onClick={logout}
+            className="border border-foreground/30 rounded px-2 py-1 text-xs hover:bg-foreground/10"
           >
-            run
+            log out
           </button>
-          {cheatMsg && <span className="text-xs opacity-80">{cheatMsg}</span>}
-        </form>
+        </div>
       </header>
 
-      <main className="grid lg:grid-cols-[1fr_400px] gap-6 p-6 max-w-7xl mx-auto">
+      <main className="grid lg:grid-cols-[1fr_360px_320px] gap-4 p-4 max-w-[1500px] mx-auto">
         {/* Click area */}
-        <section className="flex flex-col items-center justify-center min-h-[60vh]">
+        <section className="flex flex-col items-center justify-center min-h-[60vh] order-1">
           <div className="text-center mb-6">
             <div className="text-sm opacity-60">FAKE INTERNET POINTS</div>
             <div className="text-6xl font-bold tabular-nums">{fmt(points)}</div>
@@ -182,10 +560,10 @@ function Index() {
 
           <button
             onClick={click}
-            className={`relative select-none text-[12rem] leading-none transition-transform ${
+            className={`relative select-none text-[10rem] leading-none transition-transform ${
               pulse ? "scale-95" : "scale-100"
-            } hover:drop-shadow-[0_0_30px_oklch(0.92_0.18_145/0.6)] cursor-pointer`}
-            aria-label="Click to scam (not really)"
+            } cursor-pointer`}
+            aria-label="Click"
           >
             🖥️
             {floats.map((f) => (
@@ -198,43 +576,35 @@ function Index() {
               </span>
             ))}
           </button>
-
-          <div className="mt-8 text-center text-sm opacity-70 max-w-md">
-            Click the computer to "scam." Buy upgrades to "scam" automatically.
-            None of this does anything in real life. It's a joke. Please don't actually scam people.
-          </div>
         </section>
 
         {/* Shop */}
-        <aside className="space-y-2">
-          <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2">
+        <aside className="space-y-2 order-2 max-h-[80vh] overflow-y-auto pr-1">
+          <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2 sticky top-0 bg-background">
             📂 /shady_upgrades
           </h2>
           {UPGRADES.map((u) => {
-            const c = cost(u);
-            const can = points >= c;
+            const can = points >= u.baseCost;
             const n = owned[u.id] ?? 0;
             return (
               <button
                 key={u.id}
                 onClick={() => buy(u)}
                 disabled={!can}
-                className={`w-full text-left border border-foreground/30 p-3 rounded transition-all ${
-                  can
-                    ? "bg-foreground/10 hover:bg-foreground/20 cursor-pointer hover:border-foreground/60"
-                    : "opacity-40 cursor-not-allowed"
+                className={`w-full text-left border border-foreground/30 p-2 rounded transition-all ${
+                  can ? "bg-foreground/10 hover:bg-foreground/20" : "opacity-40 cursor-not-allowed"
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">{u.icon}</div>
+                <div className="flex items-start gap-2">
+                  <div className="text-2xl">{u.icon}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline gap-2">
-                      <span className="font-bold truncate">{u.name}</span>
+                      <span className="font-bold truncate text-sm">{u.name}</span>
                       <span className="text-xs opacity-60">×{n}</span>
                     </div>
                     <div className="text-xs opacity-70 truncate">{u.desc}</div>
-                    <div className="text-sm mt-1 flex justify-between">
-                      <span>cost: {fmt(c)}</span>
+                    <div className="text-xs mt-1 flex justify-between">
+                      <span>{fmt(u.baseCost)}</span>
                       <span className="opacity-70">+{u.cps}/s</span>
                     </div>
                   </div>
@@ -242,6 +612,51 @@ function Index() {
               </button>
             );
           })}
+        </aside>
+
+        {/* Chat */}
+        <aside className="order-3 flex flex-col border border-foreground/30 rounded h-[80vh] bg-foreground/5">
+          <div className="border-b border-foreground/20 px-3 py-2 font-bold flex items-center justify-between">
+            <span>💬 global_chat</span>
+            {isAdmin && (
+              <span className="text-xs opacity-60" title="Type /help for commands">/help</span>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 text-sm">
+            {chatMsgs.length === 0 && (
+              <div className="opacity-50 text-xs text-center py-4">no messages yet — say hi 👋</div>
+            )}
+            {chatMsgs.map((m) => (
+              <div key={m.id} className="break-words">
+                <span className={m.is_admin ? "text-yellow-400 font-bold" : "font-bold opacity-80"}>
+                  {m.is_admin && "👑"}
+                  {m.username}:
+                </span>{" "}
+                <span>{m.content}</span>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          {cmdMsg && (
+            <div className="px-3 py-1 text-xs border-t border-foreground/20 bg-foreground/10">
+              {cmdMsg}
+            </div>
+          )}
+          <form onSubmit={sendChat} className="border-t border-foreground/20 p-2 flex gap-1">
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={isAdmin ? "msg or /command" : "type a message…"}
+              maxLength={500}
+              className="flex-1 bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-sm outline-none focus:border-foreground/60"
+            />
+            <button
+              type="submit"
+              className="border border-foreground/30 rounded px-3 py-1 text-sm hover:bg-foreground/10"
+            >
+              send
+            </button>
+          </form>
         </aside>
       </main>
 
