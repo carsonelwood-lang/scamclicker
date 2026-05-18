@@ -219,6 +219,7 @@ function Game({ session }: { session: Session }) {
   const [adminGiveAllN, setAdminGiveAllN] = useState("100");
   const [adminAnnounce, setAdminAnnounce] = useState("");
   const [adminUserTarget, setAdminUserTarget] = useState("");
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
