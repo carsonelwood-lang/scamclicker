@@ -615,7 +615,7 @@ function Game({ session }: { session: Session }) {
         {cheatMsg && <span className="opacity-80">— {cheatMsg}</span>}
       </div>
 
-      {isAdmin && (
+      {isAdmin && adminPanelOpen && (
         <div className="border-b border-yellow-400/40 bg-yellow-400/5 px-4 py-3">
           <div className="max-w-[1500px] mx-auto flex flex-wrap items-center gap-2 text-xs">
             <span className="text-yellow-400 font-bold">👑 ADMIN PANEL</span>
