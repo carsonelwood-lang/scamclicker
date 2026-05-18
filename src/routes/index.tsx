@@ -576,7 +576,13 @@ function Game({ session }: { session: Session }) {
         <div className="flex items-center gap-3 text-sm">
           <span className="opacity-70">🟢 {onlineCount} online</span>
           <span>
-            {isAdmin && <span className="text-yellow-400 font-bold mr-1">[ADMIN]</span>}
+            {isAdmin && (
+              <button
+                onClick={() => setAdminPanelOpen((v) => !v)}
+                title="Press 9 to toggle"
+                className="text-yellow-400 font-bold mr-1 hover:underline"
+              >[ADMIN]</button>
+            )}
             <span className="opacity-80">{username}</span>
           </span>
           <button
