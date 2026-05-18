@@ -307,7 +307,21 @@ function Game({ session }: { session: Session }) {
     };
   }, [userId]);
 
+  // toggle admin panel with "9" key (admins only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "9") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      setAdminPanelOpen((v) => !v);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isAdmin]);
+
   // realtime: chat + broadcasts + online count
+
   useEffect(() => {
     const chatCh = supabase
       .channel("chat-room")
