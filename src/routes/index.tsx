@@ -213,6 +213,12 @@ function Game({ session }: { session: Session }) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [banner, setBanner] = useState<{ from: string; msg: string } | null>(null);
   const [cmdMsg, setCmdMsg] = useState("");
+  const [cheatInput, setCheatInput] = useState("");
+  const [cheatMsg, setCheatMsg] = useState("");
+  const [adminGiveAmt, setAdminGiveAmt] = useState("1000");
+  const [adminGiveAllN, setAdminGiveAllN] = useState("100");
+  const [adminAnnounce, setAdminAnnounce] = useState("");
+  const [adminUserTarget, setAdminUserTarget] = useState("");
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
