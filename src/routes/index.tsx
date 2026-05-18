@@ -279,7 +279,7 @@ function Game({ session }: { session: Session }) {
 
   // periodic save + heartbeat
   useEffect(() => {
-    const t = setInterval(() => {
+    const save = () => {
       if (!loadedRef.current) return;
       supabase
         .from("profiles")
@@ -290,22 +290,40 @@ function Game({ session }: { session: Session }) {
           last_seen: new Date().toISOString(),
         })
         .eq("id", userId);
-    }, 5000);
-    return () => clearInterval(t);
+    };
+    const t = setInterval(save, 3000);
+    const onVis = () => { if (document.visibilityState === "hidden") save(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+      save();
+    };
   }, [userId]);
 
-  // mark offline on unload
+  // save + mark offline on unload
   useEffect(() => {
     const handler = () => {
-      // best-effort
-      supabase.from("profiles").update({ is_online: false }).eq("id", userId);
+      if (!loadedRef.current) return;
+      supabase
+        .from("profiles")
+        .update({
+          points: stateRef.current.points,
+          owned: stateRef.current.owned,
+          is_online: false,
+          last_seen: new Date().toISOString(),
+        })
+        .eq("id", userId);
     };
     window.addEventListener("beforeunload", handler);
+    window.addEventListener("pagehide", handler);
     return () => {
       window.removeEventListener("beforeunload", handler);
+      window.removeEventListener("pagehide", handler);
       handler();
     };
   }, [userId]);
+
 
   // toggle admin panel with "9" key (admins only)
   useEffect(() => {
