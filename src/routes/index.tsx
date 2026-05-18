@@ -219,6 +219,7 @@ function Game({ session }: { session: Session }) {
   const [adminGiveAllN, setAdminGiveAllN] = useState("100");
   const [adminAnnounce, setAdminAnnounce] = useState("");
   const [adminUserTarget, setAdminUserTarget] = useState("");
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -306,7 +307,21 @@ function Game({ session }: { session: Session }) {
     };
   }, [userId]);
 
+  // toggle admin panel with "9" key (admins only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "9") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      setAdminPanelOpen((v) => !v);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isAdmin]);
+
   // realtime: chat + broadcasts + online count
+
   useEffect(() => {
     const chatCh = supabase
       .channel("chat-room")
@@ -561,7 +576,13 @@ function Game({ session }: { session: Session }) {
         <div className="flex items-center gap-3 text-sm">
           <span className="opacity-70">🟢 {onlineCount} online</span>
           <span>
-            {isAdmin && <span className="text-yellow-400 font-bold mr-1">[ADMIN]</span>}
+            {isAdmin && (
+              <button
+                onClick={() => setAdminPanelOpen((v) => !v)}
+                title="Press 9 to toggle"
+                className="text-yellow-400 font-bold mr-1 hover:underline"
+              >[ADMIN]</button>
+            )}
             <span className="opacity-80">{username}</span>
           </span>
           <button
@@ -600,7 +621,7 @@ function Game({ session }: { session: Session }) {
         {cheatMsg && <span className="opacity-80">— {cheatMsg}</span>}
       </div>
 
-      {isAdmin && (
+      {isAdmin && adminPanelOpen && (
         <div className="border-b border-yellow-400/40 bg-yellow-400/5 px-4 py-3">
           <div className="max-w-[1500px] mx-auto flex flex-wrap items-center gap-2 text-xs">
             <span className="text-yellow-400 font-bold">👑 ADMIN PANEL</span>
