@@ -719,9 +719,9 @@ function Game({ session }: { session: Session }) {
         if (!uname || isNaN(amt)) return showCmd(`usage: /${cmd} <user> <amount>`), true;
         const uid = await findUser(uname);
         if (!uid) return showCmd("❌ user not found"), true;
-        const col = cmd.replace("set", "");
-        const { error } = await supabase.from("profiles").update({ [col]: amt }).eq("id", uid);
-        showCmd(error ? "❌ " + error.message : `✅ ${uname} ${col}=${amt}`);
+        const patch = cmd === "setpoints" ? { points: amt } : cmd === "setgems" ? { gems: amt } : { tokens: amt };
+        const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `✅ ${uname} ${cmd.replace("set","")}=${amt}`);
         break;
       }
       default:
