@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_shop_items: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string
+          currency: string
+          description: string
+          effect_amount: number
+          effect_kind: string
+          icon: string
+          id: string
+          name: string
+          price: number
+          stock: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by: string
+          currency?: string
+          description?: string
+          effect_amount?: number
+          effect_kind?: string
+          icon?: string
+          id?: string
+          name: string
+          price?: number
+          stock?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string
+          currency?: string
+          description?: string
+          effect_amount?: number
+          effect_kind?: string
+          icon?: string
+          id?: string
+          name?: string
+          price?: number
+          stock?: number
+        }
+        Relationships: []
+      }
       broadcasts: {
         Row: {
           admin_id: string
@@ -70,33 +115,83 @@ export type Database = {
       }
       profiles: {
         Row: {
+          banned: boolean
           created_at: string
+          gems: number
           id: string
           is_online: boolean
           last_seen: string
+          muted: boolean
           owned: Json
           points: number
+          tokens: number
           username: string
         }
         Insert: {
+          banned?: boolean
           created_at?: string
+          gems?: number
           id: string
           is_online?: boolean
           last_seen?: string
+          muted?: boolean
           owned?: Json
           points?: number
+          tokens?: number
           username: string
         }
         Update: {
+          banned?: boolean
           created_at?: string
+          gems?: number
           id?: string
           is_online?: boolean
           last_seen?: string
+          muted?: boolean
           owned?: Json
           points?: number
+          tokens?: number
           username?: string
         }
         Relationships: []
+      }
+      shop_purchases: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          item_id: string
+          item_name: string
+          price_paid: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: string
+          item_id: string
+          item_name: string
+          price_paid: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          item_id?: string
+          item_name?: string
+          price_paid?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_purchases_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "admin_shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
