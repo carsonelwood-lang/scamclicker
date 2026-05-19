@@ -113,10 +113,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_trades: {
+        Row: {
+          created_at: string
+          from_user: string
+          id: string
+          offered_pet_id: string
+          requested_pet_id: string | null
+          responded_at: string | null
+          status: string
+          to_user: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          id?: string
+          offered_pet_id: string
+          requested_pet_id?: string | null
+          responded_at?: string | null
+          status?: string
+          to_user: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          id?: string
+          offered_pet_id?: string
+          requested_pet_id?: string | null
+          responded_at?: string | null
+          status?: string
+          to_user?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           banned: boolean
           created_at: string
+          equipped_pets: Json
           gems: number
           id: string
           is_online: boolean
@@ -130,6 +164,7 @@ export type Database = {
         Insert: {
           banned?: boolean
           created_at?: string
+          equipped_pets?: Json
           gems?: number
           id: string
           is_online?: boolean
@@ -143,6 +178,7 @@ export type Database = {
         Update: {
           banned?: boolean
           created_at?: string
+          equipped_pets?: Json
           gems?: number
           id?: string
           is_online?: boolean
@@ -193,6 +229,27 @@ export type Database = {
           },
         ]
       }
+      user_pets: {
+        Row: {
+          acquired_at: string
+          id: string
+          owner_id: string
+          pet_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          id?: string
+          owner_id: string
+          pet_id: string
+        }
+        Update: {
+          acquired_at?: string
+          id?: string
+          owner_id?: string
+          pet_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -216,6 +273,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_pet_trade: { Args: { _trade_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

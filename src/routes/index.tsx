@@ -125,6 +125,88 @@ const WEATHER_PRESETS: Record<string, { label: string; icon: string; multiplier:
   rainbow: { label: "Rainbow Rush", icon: "🌈", multiplier: 7 },
 };
 
+// ============ PETS ============
+type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic" | "godly";
+
+const RARITY: Record<Rarity, { label: string; color: string; mult: number; weight: number; sellGems: number }> = {
+  common:    { label: "Common",    color: "text-gray-300",   mult: 1.05, weight: 50, sellGems: 1 },
+  uncommon:  { label: "Uncommon",  color: "text-green-400",  mult: 1.15, weight: 25, sellGems: 3 },
+  rare:      { label: "Rare",      color: "text-blue-400",   mult: 1.30, weight: 13, sellGems: 8 },
+  epic:      { label: "Epic",      color: "text-purple-400", mult: 1.60, weight: 7,  sellGems: 20 },
+  legendary: { label: "Legendary", color: "text-yellow-400", mult: 2.25, weight: 3,  sellGems: 60 },
+  mythic:    { label: "Mythic",    color: "text-pink-400",   mult: 3.50, weight: 1.5,sellGems: 200 },
+  godly:     { label: "GODLY",     color: "text-red-400",    mult: 6.00, weight: 0.5,sellGems: 750 },
+};
+
+type Pet = { id: string; name: string; icon: string; rarity: Rarity };
+
+const PETS: Pet[] = [
+  // common
+  { id: "rat",        name: "Sewer Rat",        icon: "🐀", rarity: "common" },
+  { id: "pigeon",     name: "City Pigeon",      icon: "🐦", rarity: "common" },
+  { id: "fly",        name: "Spam Fly",         icon: "🪰", rarity: "common" },
+  { id: "snail",      name: "Lag Snail",        icon: "🐌", rarity: "common" },
+  { id: "ant",        name: "Worker Ant",       icon: "🐜", rarity: "common" },
+  { id: "frog",       name: "Meme Frog",        icon: "🐸", rarity: "common" },
+  // uncommon
+  { id: "cat",        name: "Scam Cat",         icon: "🐈", rarity: "uncommon" },
+  { id: "dog",        name: "Bork Coin Dog",    icon: "🐕", rarity: "uncommon" },
+  { id: "parrot",     name: "Phishing Parrot",  icon: "🦜", rarity: "uncommon" },
+  { id: "rabbit",     name: "MLM Rabbit",       icon: "🐇", rarity: "uncommon" },
+  { id: "owl",        name: "Night Trader Owl", icon: "🦉", rarity: "uncommon" },
+  // rare
+  { id: "fox",        name: "Sly Fox",          icon: "🦊", rarity: "rare" },
+  { id: "raccoon",    name: "Trash Raccoon",    icon: "🦝", rarity: "rare" },
+  { id: "shark",      name: "Loan Shark",       icon: "🦈", rarity: "rare" },
+  { id: "octopus",    name: "Lobby Octopus",    icon: "🐙", rarity: "rare" },
+  { id: "bear",       name: "Bear Market",      icon: "🐻", rarity: "rare" },
+  // epic
+  { id: "tiger",      name: "Pyramid Tiger",    icon: "🐅", rarity: "epic" },
+  { id: "wolf",       name: "Wall St. Wolf",    icon: "🐺", rarity: "epic" },
+  { id: "octa",       name: "Hedge Eagle",      icon: "🦅", rarity: "epic" },
+  { id: "snake",      name: "Silver Tongue",    icon: "🐍", rarity: "epic" },
+  { id: "scorpion",   name: "Tax Scorpion",     icon: "🦂", rarity: "epic" },
+  // legendary
+  { id: "dragon",     name: "ICO Dragon",       icon: "🐉", rarity: "legendary" },
+  { id: "unicorn",    name: "Startup Unicorn",  icon: "🦄", rarity: "legendary" },
+  { id: "phoenix",    name: "Rugpull Phoenix",  icon: "🔥", rarity: "legendary" },
+  { id: "kraken",     name: "Market Kraken",    icon: "🦑", rarity: "legendary" },
+  // mythic
+  { id: "alien_pet",  name: "Galactic Grifter", icon: "👾", rarity: "mythic" },
+  { id: "demon_pet",  name: "Soul Broker",      icon: "👹", rarity: "mythic" },
+  { id: "ghost",      name: "Ghost of Ponzi",   icon: "👻", rarity: "mythic" },
+  // godly
+  { id: "lizardking", name: "Lizard King",      icon: "🦎", rarity: "godly" },
+  { id: "voidcat",    name: "Cosmic Cat",       icon: "🌠", rarity: "godly" },
+  { id: "moneygod",   name: "Money God",        icon: "💰", rarity: "godly" },
+];
+
+const PET_BY_ID: Record<string, Pet> = Object.fromEntries(PETS.map((p) => [p.id, p]));
+
+const MAX_EQUIPPED = 5;
+const EGG_COST_GEMS = 25;
+
+function rollPet(): Pet {
+  const totalWeight = PETS.reduce((s, p) => s + RARITY[p.rarity].weight, 0);
+  let r = Math.random() * totalWeight;
+  for (const p of PETS) {
+    r -= RARITY[p.rarity].weight;
+    if (r <= 0) return p;
+  }
+  return PETS[0];
+}
+
+type UserPet = { id: string; owner_id: string; pet_id: string; acquired_at: string };
+type PetTrade = {
+  id: string;
+  from_user: string;
+  to_user: string;
+  offered_pet_id: string;
+  requested_pet_id: string | null;
+  status: string;
+  created_at: string;
+};
+
 function Index() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -285,6 +367,17 @@ function Game({ session }: { session: Session }) {
   const [newItemEffect, setNewItemEffect] = useState<ShopItem["effect_kind"]>("points");
   const [newItemEffectAmt, setNewItemEffectAmt] = useState("100000");
 
+  // Pets
+  const [userPets, setUserPets] = useState<UserPet[]>([]);
+  const [equipped, setEquipped] = useState<string[]>([]); // user_pets.id list
+  const [trades, setTrades] = useState<PetTrade[]>([]);
+  const [petsPanelOpen, setPetsPanelOpen] = useState(true);
+  const [tradeTargetName, setTradeTargetName] = useState("");
+  const [tradeTargetPets, setTradeTargetPets] = useState<UserPet[]>([]);
+  const [tradeOfferPet, setTradeOfferPet] = useState<string>("");
+  const [tradeRequestPet, setTradeRequestPet] = useState<string>("");
+  const [tradePanelOpen, setTradePanelOpen] = useState(false);
+
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, gems: 0, tokens: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -300,10 +393,12 @@ function Game({ session }: { session: Session }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [{ data: prof }, { data: roles }, { data: shop }] = await Promise.all([
-        supabase.from("profiles").select("username, points, gems, tokens, owned, muted").eq("id", userId).maybeSingle(),
+      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }] = await Promise.all([
+        supabase.from("profiles").select("username, points, gems, tokens, owned, muted, equipped_pets").eq("id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("admin_shop_items").select("*").eq("active", true).order("created_at", { ascending: false }),
+        supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false }),
+        supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending"),
       ]);
       if (!mounted) return;
       if (prof) {
@@ -313,6 +408,7 @@ function Game({ session }: { session: Session }) {
         setTokens(Number(prof.tokens) || 0);
         setOwned((prof.owned as Record<string, number>) || {});
         setMuted(!!prof.muted);
+        setEquipped((prof.equipped_pets as string[]) || []);
         stateRef.current = {
           points: Number(prof.points) || 0,
           gems: Number(prof.gems) || 0,
@@ -322,6 +418,8 @@ function Game({ session }: { session: Session }) {
       }
       setIsAdmin(!!roles?.some((r) => r.role === "admin"));
       if (shop) setShopItems(shop as ShopItem[]);
+      if (pets) setUserPets(pets as UserPet[]);
+      if (tr) setTrades(tr as PetTrade[]);
       loadedRef.current = true;
 
       await supabase.from("profiles").update({ is_online: true, last_seen: new Date().toISOString() }).eq("id", userId);
@@ -453,11 +551,29 @@ function Game({ session }: { session: Session }) {
       })
       .subscribe();
 
+    const petsCh = supabase
+      .channel("pets-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_pets", filter: `owner_id=eq.${userId}` }, async () => {
+        const { data } = await supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false });
+        if (data) setUserPets(data as UserPet[]);
+      })
+      .subscribe();
+
+    const tradesCh = supabase
+      .channel("trades-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pet_trades" }, async () => {
+        const { data } = await supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending");
+        setTrades((data as PetTrade[]) ?? []);
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(chatCh);
       supabase.removeChannel(bcCh);
       supabase.removeChannel(presenceCh);
       supabase.removeChannel(shopCh);
+      supabase.removeChannel(petsCh);
+      supabase.removeChannel(tradesCh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -466,10 +582,19 @@ function Game({ session }: { session: Session }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMsgs]);
 
+  // Pet boost multiplier from equipped pets
+  const petMult = equipped.reduce((acc, upId) => {
+    const up = userPets.find((p) => p.id === upId);
+    if (!up) return acc;
+    const pet = PET_BY_ID[up.pet_id];
+    if (!pet) return acc;
+    return acc * RARITY[pet.rarity].mult;
+  }, 1);
+
   const weatherMult = weather && weather.expiresAt > now ? weather.multiplier : 1;
   const godmodeActive = godmodeUntil > now;
   const baseCps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
-  const effectiveMult = (frozen ? 0 : 1) * globalMult * weatherMult * (godmodeActive ? 100 : 1);
+  const effectiveMult = (frozen ? 0 : 1) * globalMult * weatherMult * petMult * (godmodeActive ? 100 : 1);
   const cps = baseCps * effectiveMult;
   const perClick = Math.max(1, Math.floor((1 + Math.floor(baseCps * 0.05)) * Math.max(1, effectiveMult)));
 
@@ -826,6 +951,99 @@ function Game({ session }: { session: Session }) {
     if (error) showCmd("❌ " + error.message);
   };
 
+  // ============ PETS actions ============
+  const saveEquipped = async (next: string[]) => {
+    setEquipped(next);
+    await supabase.from("profiles").update({ equipped_pets: next }).eq("id", userId);
+  };
+
+  const hatchEgg = async () => {
+    if (gems < EGG_COST_GEMS) return showCmd(`❌ need ${EGG_COST_GEMS} 💎`);
+    setGems((g) => g - EGG_COST_GEMS);
+    const pet = rollPet();
+    const { data, error } = await supabase
+      .from("user_pets")
+      .insert({ owner_id: userId, pet_id: pet.id })
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      setGems((g) => g + EGG_COST_GEMS);
+      return showCmd("❌ " + (error?.message || "hatch failed"));
+    }
+    setUserPets((ps) => [data as UserPet, ...ps]);
+    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${RARITY[pet.rarity].label})`);
+  };
+
+  const toggleEquip = async (upId: string) => {
+    if (equipped.includes(upId)) {
+      await saveEquipped(equipped.filter((x) => x !== upId));
+    } else {
+      if (equipped.length >= MAX_EQUIPPED) return showCmd(`❌ max ${MAX_EQUIPPED} equipped`);
+      await saveEquipped([...equipped, upId]);
+    }
+  };
+
+  const sellPet = async (up: UserPet) => {
+    const pet = PET_BY_ID[up.pet_id];
+    if (!pet) return;
+    const refund = RARITY[pet.rarity].sellGems;
+    if (!confirm(`Sell ${pet.icon} ${pet.name} for ${refund} 💎?`)) return;
+    const { error } = await supabase.from("user_pets").delete().eq("id", up.id);
+    if (error) return showCmd("❌ " + error.message);
+    setUserPets((ps) => ps.filter((x) => x.id !== up.id));
+    if (equipped.includes(up.id)) await saveEquipped(equipped.filter((x) => x !== up.id));
+    setGems((g) => g + refund);
+    showCmd(`💰 sold for ${refund} 💎`);
+  };
+
+  const loadTradeTarget = async () => {
+    setTradeTargetPets([]);
+    setTradeRequestPet("");
+    const name = tradeTargetName.trim();
+    if (!name) return;
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
+    if (!prof) return showCmd("❌ user not found");
+    if (prof.id === userId) return showCmd("❌ can't trade with yourself");
+    const { data: pets } = await supabase.from("user_pets").select("*").eq("owner_id", prof.id);
+    setTradeTargetPets((pets as UserPet[]) ?? []);
+    if (!pets || pets.length === 0) showCmd("(target has no pets)");
+  };
+
+  const sendTrade = async () => {
+    const name = tradeTargetName.trim();
+    if (!name || !tradeOfferPet) return showCmd("❌ pick offer pet & target");
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
+    if (!prof) return showCmd("❌ user not found");
+    const { error } = await supabase.from("pet_trades").insert({
+      from_user: userId,
+      to_user: prof.id,
+      offered_pet_id: tradeOfferPet,
+      requested_pet_id: tradeRequestPet || null,
+    });
+    if (error) return showCmd("❌ " + error.message);
+    setTradeOfferPet(""); setTradeRequestPet(""); setTradeTargetPets([]); setTradeTargetName("");
+    showCmd("✉️ trade sent");
+  };
+
+  const acceptTrade = async (tradeId: string) => {
+    const { data, error } = await supabase.rpc("accept_pet_trade", { _trade_id: tradeId });
+    if (error) return showCmd("❌ " + error.message);
+    const res = data as { ok: boolean; error?: string };
+    if (!res.ok) return showCmd("❌ " + res.error);
+    // refresh pets
+    const { data: pets } = await supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false });
+    if (pets) setUserPets(pets as UserPet[]);
+    showCmd("✅ trade accepted");
+  };
+
+  const declineTrade = async (tradeId: string) => {
+    await supabase.from("pet_trades").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", tradeId);
+  };
+
+  const cancelTrade = async (tradeId: string) => {
+    await supabase.from("pet_trades").update({ status: "cancelled", responded_at: new Date().toISOString() }).eq("id", tradeId);
+  };
+
   const logout = async () => {
     await supabase.from("profiles").update({ is_online: false }).eq("id", userId);
     await supabase.auth.signOut();
@@ -1018,7 +1236,111 @@ function Game({ session }: { session: Session }) {
               </div>
             </div>
           )}
+
+          {/* PETS */}
+          <div className="w-full max-w-2xl border border-pink-400/40 rounded p-3 bg-pink-400/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-pink-400">🐾 pets ({userPets.length}) — equipped {equipped.length}/{MAX_EQUIPPED} · ×{petMult.toFixed(2)} CPS</h3>
+              <div className="flex gap-1">
+                <button onClick={hatchEgg} className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 text-xs hover:bg-pink-400/10">🥚 hatch ({EGG_COST_GEMS}💎)</button>
+                <button onClick={() => setTradePanelOpen((v) => !v)} className="border border-foreground/30 rounded px-2 py-1 text-xs hover:bg-foreground/10">🔁 trade {trades.length > 0 && <span className="text-yellow-400">({trades.length})</span>}</button>
+                <button onClick={() => setPetsPanelOpen((v) => !v)} className="border border-foreground/30 rounded px-2 py-1 text-xs hover:bg-foreground/10">{petsPanelOpen ? "−" : "+"}</button>
+              </div>
+            </div>
+
+            {petsPanelOpen && (
+              <>
+                {userPets.length === 0 ? (
+                  <div className="text-xs opacity-60 text-center py-3">no pets yet — hatch an egg!</div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-64 overflow-y-auto">
+                    {userPets.map((up) => {
+                      const pet = PET_BY_ID[up.pet_id];
+                      if (!pet) return null;
+                      const r = RARITY[pet.rarity];
+                      const isEq = equipped.includes(up.id);
+                      return (
+                        <div key={up.id} className={`border rounded p-1.5 text-xs ${isEq ? "border-yellow-400/60 bg-yellow-400/10" : "border-foreground/20 bg-background"}`}>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xl">{pet.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="truncate font-bold">{pet.name}</div>
+                              <div className={`${r.color} text-[10px]`}>{r.label} ×{r.mult}</div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1 mt-1">
+                            <button onClick={() => toggleEquip(up.id)} className={`flex-1 text-[10px] border rounded px-1 ${isEq ? "border-yellow-400/50 text-yellow-400" : "border-foreground/30 hover:bg-foreground/10"}`}>{isEq ? "unequip" : "equip"}</button>
+                            <button onClick={() => sellPet(up)} className="text-[10px] border border-foreground/30 rounded px-1 hover:bg-foreground/10">💰{r.sellGems}</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {tradePanelOpen && (
+                  <div className="border-t border-pink-400/30 pt-2 space-y-2">
+                    {trades.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold">📥 active trades</div>
+                        {trades.map((t) => {
+                          const mine = t.from_user === userId;
+                          const offered = (mine ? userPets : tradeTargetPets).find((p) => p.id === t.offered_pet_id);
+                          const offeredPet = offered ? PET_BY_ID[offered.pet_id] : null;
+                          const requested = t.requested_pet_id ? (mine ? tradeTargetPets : userPets).find((p) => p.id === t.requested_pet_id) : null;
+                          const reqPet = requested ? PET_BY_ID[requested.pet_id] : null;
+                          return (
+                            <div key={t.id} className="border border-foreground/30 rounded p-1.5 text-xs flex items-center justify-between gap-2 bg-background">
+                              <div className="flex-1 min-w-0">
+                                <div className="opacity-70 text-[10px]">{mine ? "you sent →" : "← you received"}</div>
+                                <div>
+                                  {offeredPet ? `${offeredPet.icon} ${offeredPet.name}` : `pet ${t.offered_pet_id.slice(0, 6)}`}
+                                  {" ⇄ "}
+                                  {reqPet ? `${reqPet.icon} ${reqPet.name}` : t.requested_pet_id ? "(unknown)" : "🎁 gift"}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {!mine && <button onClick={() => acceptTrade(t.id)} className="border border-green-400/50 text-green-400 rounded px-2 hover:bg-green-400/10">✓</button>}
+                                {!mine && <button onClick={() => declineTrade(t.id)} className="border border-red-400/50 text-red-400 rounded px-2 hover:bg-red-400/10">✗</button>}
+                                {mine && <button onClick={() => cancelTrade(t.id)} className="border border-foreground/30 rounded px-2 hover:bg-foreground/10">cancel</button>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="border border-foreground/30 rounded p-2 space-y-1">
+                      <div className="text-xs font-bold">📤 send new trade</div>
+                      <div className="flex gap-1">
+                        <input value={tradeTargetName} onChange={(e) => setTradeTargetName(e.target.value)} placeholder="username" className="flex-1 bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-xs outline-none" />
+                        <button onClick={loadTradeTarget} className="border border-foreground/30 rounded px-2 text-xs hover:bg-foreground/10">load</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <select value={tradeOfferPet} onChange={(e) => setTradeOfferPet(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 text-xs outline-none">
+                          <option value="">-- your pet --</option>
+                          {userPets.map((up) => {
+                            const p = PET_BY_ID[up.pet_id];
+                            return p ? <option key={up.id} value={up.id}>{p.icon} {p.name} ({RARITY[p.rarity].label})</option> : null;
+                          })}
+                        </select>
+                        <select value={tradeRequestPet} onChange={(e) => setTradeRequestPet(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 text-xs outline-none">
+                          <option value="">-- gift (no request) --</option>
+                          {tradeTargetPets.map((up) => {
+                            const p = PET_BY_ID[up.pet_id];
+                            return p ? <option key={up.id} value={up.id}>{p.icon} {p.name} ({RARITY[p.rarity].label})</option> : null;
+                          })}
+                        </select>
+                      </div>
+                      <button onClick={sendTrade} className="w-full border border-pink-400/50 text-pink-400 rounded px-2 py-1 text-xs hover:bg-pink-400/10">send trade</button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </section>
+
 
         <aside className="space-y-2 order-2 max-h-[80vh] overflow-y-auto pr-1">
           <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2 sticky top-0 bg-background">
