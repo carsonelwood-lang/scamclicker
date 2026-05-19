@@ -367,6 +367,17 @@ function Game({ session }: { session: Session }) {
   const [newItemEffect, setNewItemEffect] = useState<ShopItem["effect_kind"]>("points");
   const [newItemEffectAmt, setNewItemEffectAmt] = useState("100000");
 
+  // Pets
+  const [userPets, setUserPets] = useState<UserPet[]>([]);
+  const [equipped, setEquipped] = useState<string[]>([]); // user_pets.id list
+  const [trades, setTrades] = useState<PetTrade[]>([]);
+  const [petsPanelOpen, setPetsPanelOpen] = useState(true);
+  const [tradeTargetName, setTradeTargetName] = useState("");
+  const [tradeTargetPets, setTradeTargetPets] = useState<UserPet[]>([]);
+  const [tradeOfferPet, setTradeOfferPet] = useState<string>("");
+  const [tradeRequestPet, setTradeRequestPet] = useState<string>("");
+  const [tradePanelOpen, setTradePanelOpen] = useState(false);
+
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, gems: 0, tokens: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
