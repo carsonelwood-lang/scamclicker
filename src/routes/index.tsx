@@ -551,11 +551,29 @@ function Game({ session }: { session: Session }) {
       })
       .subscribe();
 
+    const petsCh = supabase
+      .channel("pets-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_pets", filter: `owner_id=eq.${userId}` }, async () => {
+        const { data } = await supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false });
+        if (data) setUserPets(data as UserPet[]);
+      })
+      .subscribe();
+
+    const tradesCh = supabase
+      .channel("trades-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pet_trades" }, async () => {
+        const { data } = await supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending");
+        setTrades((data as PetTrade[]) ?? []);
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(chatCh);
       supabase.removeChannel(bcCh);
       supabase.removeChannel(presenceCh);
       supabase.removeChannel(shopCh);
+      supabase.removeChannel(petsCh);
+      supabase.removeChannel(tradesCh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -564,10 +582,19 @@ function Game({ session }: { session: Session }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMsgs]);
 
+  // Pet boost multiplier from equipped pets
+  const petMult = equipped.reduce((acc, upId) => {
+    const up = userPets.find((p) => p.id === upId);
+    if (!up) return acc;
+    const pet = PET_BY_ID[up.pet_id];
+    if (!pet) return acc;
+    return acc * RARITY[pet.rarity].mult;
+  }, 1);
+
   const weatherMult = weather && weather.expiresAt > now ? weather.multiplier : 1;
   const godmodeActive = godmodeUntil > now;
   const baseCps = UPGRADES.reduce((s, u) => s + (owned[u.id] ?? 0) * u.cps, 0);
-  const effectiveMult = (frozen ? 0 : 1) * globalMult * weatherMult * (godmodeActive ? 100 : 1);
+  const effectiveMult = (frozen ? 0 : 1) * globalMult * weatherMult * petMult * (godmodeActive ? 100 : 1);
   const cps = baseCps * effectiveMult;
   const perClick = Math.max(1, Math.floor((1 + Math.floor(baseCps * 0.05)) * Math.max(1, effectiveMult)));
 
