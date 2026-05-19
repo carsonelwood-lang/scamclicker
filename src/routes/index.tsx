@@ -453,24 +453,8 @@ function Game({ session }: { session: Session }) {
     setOwned((o) => ({ ...o, [u.id]: (o[u.id] ?? 0) + 1 }));
   };
 
-  const applyCheat = (codeRaw: string) => {
-    const code = codeRaw.trim().toUpperCase();
-    if (!code) return;
-    const giveAll = (n: number, pts: number) => {
-      setOwned((o) => {
-        const nx = { ...o };
-        for (const u of UPGRADES) nx[u.id] = (nx[u.id] ?? 0) + n;
-        return nx;
-      });
-      setPoints((p) => p + pts);
-    };
-    if (code === "100") { giveAll(100, 1e6); setCheatMsg("✅ +100 of everything"); }
-    else if (code === "200") { giveAll(200, 1e9); setCheatMsg("✅ +200 of everything"); }
-    else if (code === "500") { giveAll(500, 1e12); setCheatMsg("✅ +500 of everything"); }
-    else if (code === "GODMODE") { giveAll(9999, 1e15); setCheatMsg("🔱 GODMODE activated"); }
-    else setCheatMsg("❌ invalid code");
-    setTimeout(() => setCheatMsg(""), 2500);
-  };
+
+
 
   const showCmd = useCallback((s: string) => {
     setCmdMsg(s);
