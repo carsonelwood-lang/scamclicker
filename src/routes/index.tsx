@@ -1236,7 +1236,111 @@ function Game({ session }: { session: Session }) {
               </div>
             </div>
           )}
+
+          {/* PETS */}
+          <div className="w-full max-w-2xl border border-pink-400/40 rounded p-3 bg-pink-400/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-pink-400">🐾 pets ({userPets.length}) — equipped {equipped.length}/{MAX_EQUIPPED} · ×{petMult.toFixed(2)} CPS</h3>
+              <div className="flex gap-1">
+                <button onClick={hatchEgg} className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 text-xs hover:bg-pink-400/10">🥚 hatch ({EGG_COST_GEMS}💎)</button>
+                <button onClick={() => setTradePanelOpen((v) => !v)} className="border border-foreground/30 rounded px-2 py-1 text-xs hover:bg-foreground/10">🔁 trade {trades.length > 0 && <span className="text-yellow-400">({trades.length})</span>}</button>
+                <button onClick={() => setPetsPanelOpen((v) => !v)} className="border border-foreground/30 rounded px-2 py-1 text-xs hover:bg-foreground/10">{petsPanelOpen ? "−" : "+"}</button>
+              </div>
+            </div>
+
+            {petsPanelOpen && (
+              <>
+                {userPets.length === 0 ? (
+                  <div className="text-xs opacity-60 text-center py-3">no pets yet — hatch an egg!</div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-64 overflow-y-auto">
+                    {userPets.map((up) => {
+                      const pet = PET_BY_ID[up.pet_id];
+                      if (!pet) return null;
+                      const r = RARITY[pet.rarity];
+                      const isEq = equipped.includes(up.id);
+                      return (
+                        <div key={up.id} className={`border rounded p-1.5 text-xs ${isEq ? "border-yellow-400/60 bg-yellow-400/10" : "border-foreground/20 bg-background"}`}>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xl">{pet.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="truncate font-bold">{pet.name}</div>
+                              <div className={`${r.color} text-[10px]`}>{r.label} ×{r.mult}</div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1 mt-1">
+                            <button onClick={() => toggleEquip(up.id)} className={`flex-1 text-[10px] border rounded px-1 ${isEq ? "border-yellow-400/50 text-yellow-400" : "border-foreground/30 hover:bg-foreground/10"}`}>{isEq ? "unequip" : "equip"}</button>
+                            <button onClick={() => sellPet(up)} className="text-[10px] border border-foreground/30 rounded px-1 hover:bg-foreground/10">💰{r.sellGems}</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {tradePanelOpen && (
+                  <div className="border-t border-pink-400/30 pt-2 space-y-2">
+                    {trades.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold">📥 active trades</div>
+                        {trades.map((t) => {
+                          const mine = t.from_user === userId;
+                          const offered = (mine ? userPets : tradeTargetPets).find((p) => p.id === t.offered_pet_id);
+                          const offeredPet = offered ? PET_BY_ID[offered.pet_id] : null;
+                          const requested = t.requested_pet_id ? (mine ? tradeTargetPets : userPets).find((p) => p.id === t.requested_pet_id) : null;
+                          const reqPet = requested ? PET_BY_ID[requested.pet_id] : null;
+                          return (
+                            <div key={t.id} className="border border-foreground/30 rounded p-1.5 text-xs flex items-center justify-between gap-2 bg-background">
+                              <div className="flex-1 min-w-0">
+                                <div className="opacity-70 text-[10px]">{mine ? "you sent →" : "← you received"}</div>
+                                <div>
+                                  {offeredPet ? `${offeredPet.icon} ${offeredPet.name}` : `pet ${t.offered_pet_id.slice(0, 6)}`}
+                                  {" ⇄ "}
+                                  {reqPet ? `${reqPet.icon} ${reqPet.name}` : t.requested_pet_id ? "(unknown)" : "🎁 gift"}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {!mine && <button onClick={() => acceptTrade(t.id)} className="border border-green-400/50 text-green-400 rounded px-2 hover:bg-green-400/10">✓</button>}
+                                {!mine && <button onClick={() => declineTrade(t.id)} className="border border-red-400/50 text-red-400 rounded px-2 hover:bg-red-400/10">✗</button>}
+                                {mine && <button onClick={() => cancelTrade(t.id)} className="border border-foreground/30 rounded px-2 hover:bg-foreground/10">cancel</button>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="border border-foreground/30 rounded p-2 space-y-1">
+                      <div className="text-xs font-bold">📤 send new trade</div>
+                      <div className="flex gap-1">
+                        <input value={tradeTargetName} onChange={(e) => setTradeTargetName(e.target.value)} placeholder="username" className="flex-1 bg-foreground/10 border border-foreground/30 rounded px-2 py-1 text-xs outline-none" />
+                        <button onClick={loadTradeTarget} className="border border-foreground/30 rounded px-2 text-xs hover:bg-foreground/10">load</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <select value={tradeOfferPet} onChange={(e) => setTradeOfferPet(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 text-xs outline-none">
+                          <option value="">-- your pet --</option>
+                          {userPets.map((up) => {
+                            const p = PET_BY_ID[up.pet_id];
+                            return p ? <option key={up.id} value={up.id}>{p.icon} {p.name} ({RARITY[p.rarity].label})</option> : null;
+                          })}
+                        </select>
+                        <select value={tradeRequestPet} onChange={(e) => setTradeRequestPet(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 text-xs outline-none">
+                          <option value="">-- gift (no request) --</option>
+                          {tradeTargetPets.map((up) => {
+                            const p = PET_BY_ID[up.pet_id];
+                            return p ? <option key={up.id} value={up.id}>{p.icon} {p.name} ({RARITY[p.rarity].label})</option> : null;
+                          })}
+                        </select>
+                      </div>
+                      <button onClick={sendTrade} className="w-full border border-pink-400/50 text-pink-400 rounded px-2 py-1 text-xs hover:bg-pink-400/10">send trade</button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </section>
+
 
         <aside className="space-y-2 order-2 max-h-[80vh] overflow-y-auto pr-1">
           <h2 className="text-lg font-bold mb-3 border-b border-foreground/20 pb-2 sticky top-0 bg-background">
