@@ -951,6 +951,99 @@ function Game({ session }: { session: Session }) {
     if (error) showCmd("❌ " + error.message);
   };
 
+  // ============ PETS actions ============
+  const saveEquipped = async (next: string[]) => {
+    setEquipped(next);
+    await supabase.from("profiles").update({ equipped_pets: next }).eq("id", userId);
+  };
+
+  const hatchEgg = async () => {
+    if (gems < EGG_COST_GEMS) return showCmd(`❌ need ${EGG_COST_GEMS} 💎`);
+    setGems((g) => g - EGG_COST_GEMS);
+    const pet = rollPet();
+    const { data, error } = await supabase
+      .from("user_pets")
+      .insert({ owner_id: userId, pet_id: pet.id })
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      setGems((g) => g + EGG_COST_GEMS);
+      return showCmd("❌ " + (error?.message || "hatch failed"));
+    }
+    setUserPets((ps) => [data as UserPet, ...ps]);
+    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${RARITY[pet.rarity].label})`);
+  };
+
+  const toggleEquip = async (upId: string) => {
+    if (equipped.includes(upId)) {
+      await saveEquipped(equipped.filter((x) => x !== upId));
+    } else {
+      if (equipped.length >= MAX_EQUIPPED) return showCmd(`❌ max ${MAX_EQUIPPED} equipped`);
+      await saveEquipped([...equipped, upId]);
+    }
+  };
+
+  const sellPet = async (up: UserPet) => {
+    const pet = PET_BY_ID[up.pet_id];
+    if (!pet) return;
+    const refund = RARITY[pet.rarity].sellGems;
+    if (!confirm(`Sell ${pet.icon} ${pet.name} for ${refund} 💎?`)) return;
+    const { error } = await supabase.from("user_pets").delete().eq("id", up.id);
+    if (error) return showCmd("❌ " + error.message);
+    setUserPets((ps) => ps.filter((x) => x.id !== up.id));
+    if (equipped.includes(up.id)) await saveEquipped(equipped.filter((x) => x !== up.id));
+    setGems((g) => g + refund);
+    showCmd(`💰 sold for ${refund} 💎`);
+  };
+
+  const loadTradeTarget = async () => {
+    setTradeTargetPets([]);
+    setTradeRequestPet("");
+    const name = tradeTargetName.trim();
+    if (!name) return;
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
+    if (!prof) return showCmd("❌ user not found");
+    if (prof.id === userId) return showCmd("❌ can't trade with yourself");
+    const { data: pets } = await supabase.from("user_pets").select("*").eq("owner_id", prof.id);
+    setTradeTargetPets((pets as UserPet[]) ?? []);
+    if (!pets || pets.length === 0) showCmd("(target has no pets)");
+  };
+
+  const sendTrade = async () => {
+    const name = tradeTargetName.trim();
+    if (!name || !tradeOfferPet) return showCmd("❌ pick offer pet & target");
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", name).maybeSingle();
+    if (!prof) return showCmd("❌ user not found");
+    const { error } = await supabase.from("pet_trades").insert({
+      from_user: userId,
+      to_user: prof.id,
+      offered_pet_id: tradeOfferPet,
+      requested_pet_id: tradeRequestPet || null,
+    });
+    if (error) return showCmd("❌ " + error.message);
+    setTradeOfferPet(""); setTradeRequestPet(""); setTradeTargetPets([]); setTradeTargetName("");
+    showCmd("✉️ trade sent");
+  };
+
+  const acceptTrade = async (tradeId: string) => {
+    const { data, error } = await supabase.rpc("accept_pet_trade", { _trade_id: tradeId });
+    if (error) return showCmd("❌ " + error.message);
+    const res = data as { ok: boolean; error?: string };
+    if (!res.ok) return showCmd("❌ " + res.error);
+    // refresh pets
+    const { data: pets } = await supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false });
+    if (pets) setUserPets(pets as UserPet[]);
+    showCmd("✅ trade accepted");
+  };
+
+  const declineTrade = async (tradeId: string) => {
+    await supabase.from("pet_trades").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", tradeId);
+  };
+
+  const cancelTrade = async (tradeId: string) => {
+    await supabase.from("pet_trades").update({ status: "cancelled", responded_at: new Date().toISOString() }).eq("id", tradeId);
+  };
+
   const logout = async () => {
     await supabase.from("profiles").update({ is_online: false }).eq("id", userId);
     await supabase.auth.signOut();
