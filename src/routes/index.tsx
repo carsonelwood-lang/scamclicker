@@ -213,13 +213,11 @@ function Game({ session }: { session: Session }) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [banner, setBanner] = useState<{ from: string; msg: string } | null>(null);
   const [cmdMsg, setCmdMsg] = useState("");
-  const [cheatInput, setCheatInput] = useState("");
-  const [cheatMsg, setCheatMsg] = useState("");
   const [adminGiveAmt, setAdminGiveAmt] = useState("1000");
   const [adminGiveAllN, setAdminGiveAllN] = useState("100");
   const [adminAnnounce, setAdminAnnounce] = useState("");
   const [adminUserTarget, setAdminUserTarget] = useState("");
-  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(true);
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -455,24 +453,8 @@ function Game({ session }: { session: Session }) {
     setOwned((o) => ({ ...o, [u.id]: (o[u.id] ?? 0) + 1 }));
   };
 
-  const applyCheat = (codeRaw: string) => {
-    const code = codeRaw.trim().toUpperCase();
-    if (!code) return;
-    const giveAll = (n: number, pts: number) => {
-      setOwned((o) => {
-        const nx = { ...o };
-        for (const u of UPGRADES) nx[u.id] = (nx[u.id] ?? 0) + n;
-        return nx;
-      });
-      setPoints((p) => p + pts);
-    };
-    if (code === "100") { giveAll(100, 1e6); setCheatMsg("✅ +100 of everything"); }
-    else if (code === "200") { giveAll(200, 1e9); setCheatMsg("✅ +200 of everything"); }
-    else if (code === "500") { giveAll(500, 1e12); setCheatMsg("✅ +500 of everything"); }
-    else if (code === "GODMODE") { giveAll(9999, 1e15); setCheatMsg("🔱 GODMODE activated"); }
-    else setCheatMsg("❌ invalid code");
-    setTimeout(() => setCheatMsg(""), 2500);
-  };
+
+
 
   const showCmd = useCallback((s: string) => {
     setCmdMsg(s);
@@ -612,32 +594,6 @@ function Game({ session }: { session: Session }) {
         </div>
       </header>
 
-      {/* Cheat code bar */}
-      <div className="border-b border-foreground/20 bg-foreground/5 px-4 py-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span className="opacity-70">🎮 cheat code:</span>
-        <form
-          onSubmit={(e) => { e.preventDefault(); applyCheat(cheatInput); setCheatInput(""); }}
-          className="flex gap-1"
-        >
-          <input
-            value={cheatInput}
-            onChange={(e) => setCheatInput(e.target.value)}
-            placeholder="enter code…"
-            className="bg-foreground/10 border border-foreground/30 rounded px-2 py-1 outline-none focus:border-foreground/60 w-32"
-          />
-          <button className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">go</button>
-        </form>
-        {["100", "200", "500", "GODMODE"].map((c) => (
-          <button
-            key={c}
-            onClick={() => applyCheat(c)}
-            className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10"
-          >
-            {c}
-          </button>
-        ))}
-        {cheatMsg && <span className="opacity-80">— {cheatMsg}</span>}
-      </div>
 
       {isAdmin && adminPanelOpen && (
         <div className="border-b border-yellow-400/40 bg-yellow-400/5 px-4 py-3">
