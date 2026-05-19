@@ -393,10 +393,12 @@ function Game({ session }: { session: Session }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [{ data: prof }, { data: roles }, { data: shop }] = await Promise.all([
-        supabase.from("profiles").select("username, points, gems, tokens, owned, muted").eq("id", userId).maybeSingle(),
+      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }] = await Promise.all([
+        supabase.from("profiles").select("username, points, gems, tokens, owned, muted, equipped_pets").eq("id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("admin_shop_items").select("*").eq("active", true).order("created_at", { ascending: false }),
+        supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false }),
+        supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending"),
       ]);
       if (!mounted) return;
       if (prof) {
@@ -406,6 +408,7 @@ function Game({ session }: { session: Session }) {
         setTokens(Number(prof.tokens) || 0);
         setOwned((prof.owned as Record<string, number>) || {});
         setMuted(!!prof.muted);
+        setEquipped((prof.equipped_pets as string[]) || []);
         stateRef.current = {
           points: Number(prof.points) || 0,
           gems: Number(prof.gems) || 0,
@@ -415,6 +418,8 @@ function Game({ session }: { session: Session }) {
       }
       setIsAdmin(!!roles?.some((r) => r.role === "admin"));
       if (shop) setShopItems(shop as ShopItem[]);
+      if (pets) setUserPets(pets as UserPet[]);
+      if (tr) setTrades(tr as PetTrade[]);
       loadedRef.current = true;
 
       await supabase.from("profiles").update({ is_online: true, last_seen: new Date().toISOString() }).eq("id", userId);
