@@ -125,75 +125,25 @@ const WEATHER_PRESETS: Record<string, { label: string; icon: string; multiplier:
   rainbow: { label: "Rainbow Rush", icon: "🌈", multiplier: 7 },
 };
 
-// ============ PETS ============
-type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic" | "godly";
+// ============ PETS (loaded from DB, admin-editable) ============
+type Rarity = string;
+type RarityRow = { id: string; label: string; color: string; mult: number; weight: number; sell_gems: number; sort_order: number };
+type Pet = { id: string; name: string; icon: string; rarity: Rarity; sort_order?: number };
 
-const RARITY: Record<Rarity, { label: string; color: string; mult: number; weight: number; sellGems: number }> = {
-  common:    { label: "Common",    color: "text-gray-300",   mult: 1.05, weight: 50, sellGems: 1 },
-  uncommon:  { label: "Uncommon",  color: "text-green-400",  mult: 1.15, weight: 25, sellGems: 3 },
-  rare:      { label: "Rare",      color: "text-blue-400",   mult: 1.30, weight: 13, sellGems: 8 },
-  epic:      { label: "Epic",      color: "text-purple-400", mult: 1.60, weight: 7,  sellGems: 20 },
-  legendary: { label: "Legendary", color: "text-yellow-400", mult: 2.25, weight: 3,  sellGems: 60 },
-  mythic:    { label: "Mythic",    color: "text-pink-400",   mult: 3.50, weight: 1.5,sellGems: 200 },
-  godly:     { label: "GODLY",     color: "text-red-400",    mult: 6.00, weight: 0.5,sellGems: 750 },
-};
-
-type Pet = { id: string; name: string; icon: string; rarity: Rarity };
-
-const PETS: Pet[] = [
-  // common
-  { id: "rat",        name: "Sewer Rat",        icon: "🐀", rarity: "common" },
-  { id: "pigeon",     name: "City Pigeon",      icon: "🐦", rarity: "common" },
-  { id: "fly",        name: "Spam Fly",         icon: "🪰", rarity: "common" },
-  { id: "snail",      name: "Lag Snail",        icon: "🐌", rarity: "common" },
-  { id: "ant",        name: "Worker Ant",       icon: "🐜", rarity: "common" },
-  { id: "frog",       name: "Meme Frog",        icon: "🐸", rarity: "common" },
-  // uncommon
-  { id: "cat",        name: "Scam Cat",         icon: "🐈", rarity: "uncommon" },
-  { id: "dog",        name: "Bork Coin Dog",    icon: "🐕", rarity: "uncommon" },
-  { id: "parrot",     name: "Phishing Parrot",  icon: "🦜", rarity: "uncommon" },
-  { id: "rabbit",     name: "MLM Rabbit",       icon: "🐇", rarity: "uncommon" },
-  { id: "owl",        name: "Night Trader Owl", icon: "🦉", rarity: "uncommon" },
-  // rare
-  { id: "fox",        name: "Sly Fox",          icon: "🦊", rarity: "rare" },
-  { id: "raccoon",    name: "Trash Raccoon",    icon: "🦝", rarity: "rare" },
-  { id: "shark",      name: "Loan Shark",       icon: "🦈", rarity: "rare" },
-  { id: "octopus",    name: "Lobby Octopus",    icon: "🐙", rarity: "rare" },
-  { id: "bear",       name: "Bear Market",      icon: "🐻", rarity: "rare" },
-  // epic
-  { id: "tiger",      name: "Pyramid Tiger",    icon: "🐅", rarity: "epic" },
-  { id: "wolf",       name: "Wall St. Wolf",    icon: "🐺", rarity: "epic" },
-  { id: "octa",       name: "Hedge Eagle",      icon: "🦅", rarity: "epic" },
-  { id: "snake",      name: "Silver Tongue",    icon: "🐍", rarity: "epic" },
-  { id: "scorpion",   name: "Tax Scorpion",     icon: "🦂", rarity: "epic" },
-  // legendary
-  { id: "dragon",     name: "ICO Dragon",       icon: "🐉", rarity: "legendary" },
-  { id: "unicorn",    name: "Startup Unicorn",  icon: "🦄", rarity: "legendary" },
-  { id: "phoenix",    name: "Rugpull Phoenix",  icon: "🔥", rarity: "legendary" },
-  { id: "kraken",     name: "Market Kraken",    icon: "🦑", rarity: "legendary" },
-  // mythic
-  { id: "alien_pet",  name: "Galactic Grifter", icon: "👾", rarity: "mythic" },
-  { id: "demon_pet",  name: "Soul Broker",      icon: "👹", rarity: "mythic" },
-  { id: "ghost",      name: "Ghost of Ponzi",   icon: "👻", rarity: "mythic" },
-  // godly
-  { id: "lizardking", name: "Lizard King",      icon: "🦎", rarity: "godly" },
-  { id: "voidcat",    name: "Cosmic Cat",       icon: "🌠", rarity: "godly" },
-  { id: "moneygod",   name: "Money God",        icon: "💰", rarity: "godly" },
-];
-
-const PET_BY_ID: Record<string, Pet> = Object.fromEntries(PETS.map((p) => [p.id, p]));
+const FALLBACK_RARITY: RarityRow = { id: "unknown", label: "Unknown", color: "text-gray-400", mult: 1, weight: 1, sell_gems: 1, sort_order: 0 };
 
 const MAX_EQUIPPED = 5;
 const EGG_COST_GEMS = 25;
 
-function rollPet(): Pet {
-  const totalWeight = PETS.reduce((s, p) => s + RARITY[p.rarity].weight, 0);
+function rollPetFrom(pets: Pet[], rarityById: Record<string, RarityRow>): Pet | null {
+  if (pets.length === 0) return null;
+  const totalWeight = pets.reduce((s, p) => s + (rarityById[p.rarity]?.weight ?? 1), 0);
   let r = Math.random() * totalWeight;
-  for (const p of PETS) {
-    r -= RARITY[p.rarity].weight;
+  for (const p of pets) {
+    r -= rarityById[p.rarity]?.weight ?? 1;
     if (r <= 0) return p;
   }
-  return PETS[0];
+  return pets[0];
 }
 
 type UserPet = { id: string; owner_id: string; pet_id: string; acquired_at: string };
