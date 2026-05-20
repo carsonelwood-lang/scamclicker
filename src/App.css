@@ -1,0 +1,215 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.game-container {
+  text-align: center;
+  background: linear-gradient(135deg, #0f0f23, #ff6b35);
+  min-height: 100vh;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 3em;
+  text-shadow: 0 0 30px #ff6b35;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+.game-card {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.stat {
+  font-size: 1.5em;
+  margin: 15px 0;
+}
+
+.click-button {
+  width: 250px;
+  height: 250px;
+  font-size: 24px;
+  background: linear-gradient(45deg, #ff6b35, #f7931e);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  margin: 20px auto;
+  box-shadow: 0 20px 40px rgba(255, 107, 53, 0.4);
+  color: white;
+  font-weight: bold;
+  transition: transform 0.1s;
+}
+
+.click-button:active {
+  transform: scale(0.95);
+}
+
+.click-button:hover {
+  box-shadow: 0 25px 50px rgba(255, 107, 53, 0.6);
+}
+
+.admin-panel {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(145deg, #1a1a2e, #ff6b35);
+  color: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  min-width: 280px;
+  border: 3px solid #ff6b35;
+  max-width: 320px;
+}
+
+.admin-panel h3 {
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.admin-login-btn {
+  width: 100%;
+  padding: 15px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.admin-login-btn:hover {
+  background: #45a049;
+}
+
+.toggle-controls-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.toggle-controls-btn:hover {
+  background: #ff2222;
+}
+
+.max-values-btn {
+  width: 100%;
+  padding: 12px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.money-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.money-btn {
+  padding: 10px;
+  background: gold;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.money-btn:hover {
+  background: #ffed4e;
+}
+
+.money-btn-large {
+  background: #ff4444;
+  color: white;
+}
+
+.money-btn-large:hover {
+  background: #ff2222;
+}
+
+.money-btn-reset {
+  background: #666;
+  color: white;
+}
+
+.money-btn-reset:hover {
+  background: #555;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background: #666;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.logout-btn:hover {
+  background: #555;
+}
+
+@media (max-width: 480px) {
+  .admin-panel {
+    bottom: 20px;
+    right: 20px;
+    min-width: auto;
+    width: calc(100% - 40px);
+  }
+
+  .title {
+    font-size: 2em;
+  }
+
+  .click-button {
+    width: 180px;
+    height: 180px;
+    font-size: 18px;
+  }
+}
