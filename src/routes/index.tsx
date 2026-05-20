@@ -328,6 +328,24 @@ function Game({ session }: { session: Session }) {
   const [tradeRequestPet, setTradeRequestPet] = useState<string>("");
   const [tradePanelOpen, setTradePanelOpen] = useState(false);
 
+  // Catalog (admin-editable)
+  const [raritiesList, setRaritiesList] = useState<RarityRow[]>([]);
+  const [petsCatalog, setPetsCatalog] = useState<Pet[]>([]);
+  // New rarity form
+  const [nrId, setNrId] = useState("");
+  const [nrLabel, setNrLabel] = useState("");
+  const [nrColor, setNrColor] = useState("text-cyan-400");
+  const [nrMult, setNrMult] = useState("2");
+  const [nrWeight, setNrWeight] = useState("5");
+  const [nrSell, setNrSell] = useState("10");
+  // New pet form
+  const [npId, setNpId] = useState("");
+  const [npName, setNpName] = useState("");
+  const [npIcon, setNpIcon] = useState("🐾");
+  const [npRarity, setNpRarity] = useState("");
+  // Gift form
+  const [giftPetId, setGiftPetId] = useState("");
+
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, gems: 0, tokens: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
