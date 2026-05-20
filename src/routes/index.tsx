@@ -125,75 +125,25 @@ const WEATHER_PRESETS: Record<string, { label: string; icon: string; multiplier:
   rainbow: { label: "Rainbow Rush", icon: "🌈", multiplier: 7 },
 };
 
-// ============ PETS ============
-type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic" | "godly";
+// ============ PETS (loaded from DB, admin-editable) ============
+type Rarity = string;
+type RarityRow = { id: string; label: string; color: string; mult: number; weight: number; sell_gems: number; sort_order: number };
+type Pet = { id: string; name: string; icon: string; rarity: Rarity; sort_order?: number };
 
-const RARITY: Record<Rarity, { label: string; color: string; mult: number; weight: number; sellGems: number }> = {
-  common:    { label: "Common",    color: "text-gray-300",   mult: 1.05, weight: 50, sellGems: 1 },
-  uncommon:  { label: "Uncommon",  color: "text-green-400",  mult: 1.15, weight: 25, sellGems: 3 },
-  rare:      { label: "Rare",      color: "text-blue-400",   mult: 1.30, weight: 13, sellGems: 8 },
-  epic:      { label: "Epic",      color: "text-purple-400", mult: 1.60, weight: 7,  sellGems: 20 },
-  legendary: { label: "Legendary", color: "text-yellow-400", mult: 2.25, weight: 3,  sellGems: 60 },
-  mythic:    { label: "Mythic",    color: "text-pink-400",   mult: 3.50, weight: 1.5,sellGems: 200 },
-  godly:     { label: "GODLY",     color: "text-red-400",    mult: 6.00, weight: 0.5,sellGems: 750 },
-};
-
-type Pet = { id: string; name: string; icon: string; rarity: Rarity };
-
-const PETS: Pet[] = [
-  // common
-  { id: "rat",        name: "Sewer Rat",        icon: "🐀", rarity: "common" },
-  { id: "pigeon",     name: "City Pigeon",      icon: "🐦", rarity: "common" },
-  { id: "fly",        name: "Spam Fly",         icon: "🪰", rarity: "common" },
-  { id: "snail",      name: "Lag Snail",        icon: "🐌", rarity: "common" },
-  { id: "ant",        name: "Worker Ant",       icon: "🐜", rarity: "common" },
-  { id: "frog",       name: "Meme Frog",        icon: "🐸", rarity: "common" },
-  // uncommon
-  { id: "cat",        name: "Scam Cat",         icon: "🐈", rarity: "uncommon" },
-  { id: "dog",        name: "Bork Coin Dog",    icon: "🐕", rarity: "uncommon" },
-  { id: "parrot",     name: "Phishing Parrot",  icon: "🦜", rarity: "uncommon" },
-  { id: "rabbit",     name: "MLM Rabbit",       icon: "🐇", rarity: "uncommon" },
-  { id: "owl",        name: "Night Trader Owl", icon: "🦉", rarity: "uncommon" },
-  // rare
-  { id: "fox",        name: "Sly Fox",          icon: "🦊", rarity: "rare" },
-  { id: "raccoon",    name: "Trash Raccoon",    icon: "🦝", rarity: "rare" },
-  { id: "shark",      name: "Loan Shark",       icon: "🦈", rarity: "rare" },
-  { id: "octopus",    name: "Lobby Octopus",    icon: "🐙", rarity: "rare" },
-  { id: "bear",       name: "Bear Market",      icon: "🐻", rarity: "rare" },
-  // epic
-  { id: "tiger",      name: "Pyramid Tiger",    icon: "🐅", rarity: "epic" },
-  { id: "wolf",       name: "Wall St. Wolf",    icon: "🐺", rarity: "epic" },
-  { id: "octa",       name: "Hedge Eagle",      icon: "🦅", rarity: "epic" },
-  { id: "snake",      name: "Silver Tongue",    icon: "🐍", rarity: "epic" },
-  { id: "scorpion",   name: "Tax Scorpion",     icon: "🦂", rarity: "epic" },
-  // legendary
-  { id: "dragon",     name: "ICO Dragon",       icon: "🐉", rarity: "legendary" },
-  { id: "unicorn",    name: "Startup Unicorn",  icon: "🦄", rarity: "legendary" },
-  { id: "phoenix",    name: "Rugpull Phoenix",  icon: "🔥", rarity: "legendary" },
-  { id: "kraken",     name: "Market Kraken",    icon: "🦑", rarity: "legendary" },
-  // mythic
-  { id: "alien_pet",  name: "Galactic Grifter", icon: "👾", rarity: "mythic" },
-  { id: "demon_pet",  name: "Soul Broker",      icon: "👹", rarity: "mythic" },
-  { id: "ghost",      name: "Ghost of Ponzi",   icon: "👻", rarity: "mythic" },
-  // godly
-  { id: "lizardking", name: "Lizard King",      icon: "🦎", rarity: "godly" },
-  { id: "voidcat",    name: "Cosmic Cat",       icon: "🌠", rarity: "godly" },
-  { id: "moneygod",   name: "Money God",        icon: "💰", rarity: "godly" },
-];
-
-const PET_BY_ID: Record<string, Pet> = Object.fromEntries(PETS.map((p) => [p.id, p]));
+const FALLBACK_RARITY: RarityRow = { id: "unknown", label: "Unknown", color: "text-gray-400", mult: 1, weight: 1, sell_gems: 1, sort_order: 0 };
 
 const MAX_EQUIPPED = 5;
 const EGG_COST_GEMS = 25;
 
-function rollPet(): Pet {
-  const totalWeight = PETS.reduce((s, p) => s + RARITY[p.rarity].weight, 0);
+function rollPetFrom(pets: Pet[], rarityById: Record<string, RarityRow>): Pet | null {
+  if (pets.length === 0) return null;
+  const totalWeight = pets.reduce((s, p) => s + (rarityById[p.rarity]?.weight ?? 1), 0);
   let r = Math.random() * totalWeight;
-  for (const p of PETS) {
-    r -= RARITY[p.rarity].weight;
+  for (const p of pets) {
+    r -= rarityById[p.rarity]?.weight ?? 1;
     if (r <= 0) return p;
   }
-  return PETS[0];
+  return pets[0];
 }
 
 type UserPet = { id: string; owner_id: string; pet_id: string; acquired_at: string };
@@ -378,6 +328,24 @@ function Game({ session }: { session: Session }) {
   const [tradeRequestPet, setTradeRequestPet] = useState<string>("");
   const [tradePanelOpen, setTradePanelOpen] = useState(false);
 
+  // Catalog (admin-editable)
+  const [raritiesList, setRaritiesList] = useState<RarityRow[]>([]);
+  const [petsCatalog, setPetsCatalog] = useState<Pet[]>([]);
+  // New rarity form
+  const [nrId, setNrId] = useState("");
+  const [nrLabel, setNrLabel] = useState("");
+  const [nrColor, setNrColor] = useState("text-cyan-400");
+  const [nrMult, setNrMult] = useState("2");
+  const [nrWeight, setNrWeight] = useState("5");
+  const [nrSell, setNrSell] = useState("10");
+  // New pet form
+  const [npId, setNpId] = useState("");
+  const [npName, setNpName] = useState("");
+  const [npIcon, setNpIcon] = useState("🐾");
+  const [npRarity, setNpRarity] = useState("");
+  // Gift form
+  const [giftPetId, setGiftPetId] = useState("");
+
   const floatId = useRef(0);
   const stateRef = useRef({ points: 0, gems: 0, tokens: 0, owned: {} as Record<string, number> });
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -393,12 +361,14 @@ function Game({ session }: { session: Session }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }] = await Promise.all([
+      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }, { data: rar }, { data: cat }] = await Promise.all([
         supabase.from("profiles").select("username, points, gems, tokens, owned, muted, equipped_pets").eq("id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("admin_shop_items").select("*").eq("active", true).order("created_at", { ascending: false }),
         supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false }),
         supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending"),
+        supabase.from("rarities").select("*").order("sort_order"),
+        supabase.from("pets_catalog").select("*").order("sort_order"),
       ]);
       if (!mounted) return;
       if (prof) {
@@ -420,6 +390,8 @@ function Game({ session }: { session: Session }) {
       if (shop) setShopItems(shop as ShopItem[]);
       if (pets) setUserPets(pets as UserPet[]);
       if (tr) setTrades(tr as PetTrade[]);
+      if (rar) setRaritiesList(rar as RarityRow[]);
+      if (cat) setPetsCatalog((cat as Array<{ id: string; name: string; icon: string; rarity_id: string; sort_order: number }>).map((p) => ({ id: p.id, name: p.name, icon: p.icon, rarity: p.rarity_id, sort_order: p.sort_order })));
       loadedRef.current = true;
 
       await supabase.from("profiles").update({ is_online: true, last_seen: new Date().toISOString() }).eq("id", userId);
@@ -567,6 +539,18 @@ function Game({ session }: { session: Session }) {
       })
       .subscribe();
 
+    const catalogCh = supabase
+      .channel("catalog-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rarities" }, async () => {
+        const { data } = await supabase.from("rarities").select("*").order("sort_order");
+        if (data) setRaritiesList(data as RarityRow[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pets_catalog" }, async () => {
+        const { data } = await supabase.from("pets_catalog").select("*").order("sort_order");
+        if (data) setPetsCatalog((data as Array<{ id: string; name: string; icon: string; rarity_id: string; sort_order: number }>).map((p) => ({ id: p.id, name: p.name, icon: p.icon, rarity: p.rarity_id, sort_order: p.sort_order })));
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(chatCh);
       supabase.removeChannel(bcCh);
@@ -574,6 +558,7 @@ function Game({ session }: { session: Session }) {
       supabase.removeChannel(shopCh);
       supabase.removeChannel(petsCh);
       supabase.removeChannel(tradesCh);
+      supabase.removeChannel(catalogCh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -582,13 +567,21 @@ function Game({ session }: { session: Session }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMsgs]);
 
+  // Derived catalog maps
+  const RARITY: Record<string, RarityRow & { sellGems: number }> = {};
+  for (const r of raritiesList) RARITY[r.id] = { ...r, sellGems: r.sell_gems };
+  const PET_BY_ID: Record<string, Pet> = {};
+  for (const p of petsCatalog) PET_BY_ID[p.id] = p;
+  const getRarity = (id: string) => RARITY[id] ?? { ...FALLBACK_RARITY, sellGems: FALLBACK_RARITY.sell_gems };
+  const rollPet = (): Pet | null => rollPetFrom(petsCatalog, RARITY);
+
   // Pet boost multiplier from equipped pets
   const petMult = equipped.reduce((acc, upId) => {
     const up = userPets.find((p) => p.id === upId);
     if (!up) return acc;
     const pet = PET_BY_ID[up.pet_id];
     if (!pet) return acc;
-    return acc * RARITY[pet.rarity].mult;
+    return acc * getRarity(pet.rarity).mult;
   }, 1);
 
   const weatherMult = weather && weather.expiresAt > now ? weather.multiplier : 1;
@@ -731,7 +724,7 @@ function Game({ session }: { session: Session }) {
 
     if (cmd === "help") {
       showCmd(isAdmin
-        ? "/give /givegems /givetokens /giveall /godmode /announce /reset /weather /clearweather /multiplier /freeze /unfreeze /clearchat /grantadmin /revokeadmin /mute /unmute /setpoints /setgems /settokens"
+        ? "/give /givegems /givetokens /giveall /godmode /announce /reset /weather /clearweather /multiplier /freeze /unfreeze /clearchat /grantadmin /revokeadmin /mute /unmute /setpoints /setgems /settokens /giftpts /giftgems /gifttokens /giftpet /spawnpet /addpet /delpet /addrarity /delrarity /ban /unban /rename"
         : "no commands — you're not admin");
       return true;
     }
@@ -849,6 +842,88 @@ function Game({ session }: { session: Session }) {
         showCmd(error ? "❌ " + error.message : `✅ ${uname} ${cmd.replace("set","")}=${amt}`);
         break;
       }
+      case "giftpts":
+      case "giftgems":
+      case "gifttokens": {
+        const uname = argN(0);
+        const amt = Number(argN(1));
+        if (!uname || isNaN(amt) || !amt) return showCmd(`usage: /${cmd} <user> <amount>`), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const col = cmd === "giftpts" ? "points" : cmd === "giftgems" ? "gems" : "tokens";
+        const { data: cur } = await supabase.from("profiles").select(col).eq("id", uid).maybeSingle();
+        const have = Number((cur as Record<string, number> | null)?.[col] ?? 0);
+        const patch = col === "points" ? { points: have + amt } : col === "gems" ? { gems: have + amt } : { tokens: have + amt };
+        const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `🎁 ${uname} +${amt} ${col}`);
+        break;
+      }
+      case "giftpet": {
+        const uname = argN(0);
+        const petId = argN(1);
+        if (!uname || !petId) return showCmd("usage: /giftpet <user> <pet_id>"), true;
+        if (!PET_BY_ID[petId]) return showCmd("❌ unknown pet_id (see pets catalog)"), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("user_pets").insert({ owner_id: uid, pet_id: petId });
+        showCmd(error ? "❌ " + error.message : `🎁 gifted ${PET_BY_ID[petId].icon} ${PET_BY_ID[petId].name} to ${uname}`);
+        break;
+      }
+      case "spawnpet": {
+        const petId = argN(0);
+        if (!petId || !PET_BY_ID[petId]) return showCmd("usage: /spawnpet <pet_id>"), true;
+        const { data, error } = await supabase.from("user_pets").insert({ owner_id: userId, pet_id: petId }).select().maybeSingle();
+        if (error) return showCmd("❌ " + error.message), true;
+        if (data) setUserPets((ps) => [data as UserPet, ...ps]);
+        showCmd(`✨ spawned ${PET_BY_ID[petId].icon} ${PET_BY_ID[petId].name}`);
+        break;
+      }
+      case "addpet": {
+        const id = argN(0); const rarity = argN(1); const icon = argN(2); const name = parts.slice(4).join(" ");
+        if (!id || !rarity || !icon || !name) return showCmd("usage: /addpet <id> <rarity> <icon> <name…>"), true;
+        if (!RARITY[rarity]) return showCmd("❌ unknown rarity"), true;
+        const { error } = await supabase.from("pets_catalog").insert({ id, name, icon, rarity_id: rarity, sort_order: petsCatalog.length + 100 });
+        showCmd(error ? "❌ " + error.message : `✅ added pet ${icon} ${name}`);
+        break;
+      }
+      case "delpet": {
+        if (!arg) return showCmd("usage: /delpet <id>"), true;
+        const { error } = await supabase.from("pets_catalog").delete().eq("id", arg);
+        showCmd(error ? "❌ " + error.message : `🗑️ deleted pet ${arg}`);
+        break;
+      }
+      case "addrarity": {
+        // /addrarity <id> <mult> <weight> <sellGems> <color> <label…>
+        const id = argN(0); const mult = Number(argN(1)); const weight = Number(argN(2)); const sell = Number(argN(3)); const color = argN(4); const label = parts.slice(6).join(" ");
+        if (!id || !mult || !weight || isNaN(sell) || !color || !label) return showCmd("usage: /addrarity <id> <mult> <weight> <sellGems> <color> <label…>"), true;
+        const { error } = await supabase.from("rarities").insert({ id, label, color, mult, weight, sell_gems: sell, sort_order: raritiesList.length + 100 });
+        showCmd(error ? "❌ " + error.message : `✅ added rarity ${label}`);
+        break;
+      }
+      case "delrarity": {
+        if (!arg) return showCmd("usage: /delrarity <id>"), true;
+        const { error } = await supabase.from("rarities").delete().eq("id", arg);
+        showCmd(error ? "❌ " + error.message : `🗑️ deleted rarity ${arg}`);
+        break;
+      }
+      case "ban":
+      case "unban": {
+        if (!arg) return showCmd(`usage: /${cmd} <username>`), true;
+        const uid = await findUser(arg);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("profiles").update({ banned: cmd === "ban" }).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `✅ ${arg} ${cmd}ned`);
+        break;
+      }
+      case "rename": {
+        const uname = argN(0); const newName = argN(1);
+        if (!uname || !newName) return showCmd("usage: /rename <user> <newname>"), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("profiles").update({ username: newName }).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `✅ ${uname} → ${newName}`);
+        break;
+      }
       default:
         showCmd("❌ unknown command — /help");
     }
@@ -959,8 +1034,9 @@ function Game({ session }: { session: Session }) {
 
   const hatchEgg = async () => {
     if (gems < EGG_COST_GEMS) return showCmd(`❌ need ${EGG_COST_GEMS} 💎`);
-    setGems((g) => g - EGG_COST_GEMS);
     const pet = rollPet();
+    if (!pet) return showCmd("❌ no pets in catalog");
+    setGems((g) => g - EGG_COST_GEMS);
     const { data, error } = await supabase
       .from("user_pets")
       .insert({ owner_id: userId, pet_id: pet.id })
@@ -971,7 +1047,7 @@ function Game({ session }: { session: Session }) {
       return showCmd("❌ " + (error?.message || "hatch failed"));
     }
     setUserPets((ps) => [data as UserPet, ...ps]);
-    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${RARITY[pet.rarity].label})`);
+    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${getRarity(pet.rarity).label})`);
   };
 
   const toggleEquip = async (upId: string) => {
@@ -1151,7 +1227,82 @@ function Game({ session }: { session: Session }) {
             <button onClick={() => adminUserTarget && runCommand(`/revokeadmin ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">-admin</button>
             <button onClick={() => adminUserTarget && runCommand(`/mute ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">🔇 mute</button>
             <button onClick={() => adminUserTarget && runCommand(`/unmute ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">🔊 unmute</button>
+            <button onClick={() => adminUserTarget && runCommand(`/ban ${adminUserTarget}`)} className="border border-red-400/50 text-red-400 rounded px-2 py-1 hover:bg-red-400/10">🚫 ban</button>
+            <button onClick={() => adminUserTarget && runCommand(`/unban ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">✅ unban</button>
+            <span className="opacity-50">|gift→</span>
+            <button onClick={() => adminUserTarget && runCommand(`/giftpts ${adminUserTarget} ${adminGiveAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+pts</button>
+            <button onClick={() => adminUserTarget && runCommand(`/giftgems ${adminUserTarget} ${adminGemsAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+💎</button>
+            <button onClick={() => adminUserTarget && runCommand(`/gifttokens ${adminUserTarget} ${adminTokensAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+🎟️</button>
+            <select value={giftPetId} onChange={(e) => setGiftPetId(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none">
+              <option value="">-- pet --</option>
+              {petsCatalog.map((p) => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
+            </select>
+            <button onClick={() => adminUserTarget && giftPetId && runCommand(`/giftpet ${adminUserTarget} ${giftPetId}`)} className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 hover:bg-pink-400/10">🎁 gift pet</button>
+            <button onClick={() => giftPetId && runCommand(`/spawnpet ${giftPetId}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">✨ spawn (me)</button>
             {cmdMsg && <span className="opacity-80">— {cmdMsg}</span>}
+          </div>
+
+          {/* Catalog editor: rarities + pets */}
+          <div className="max-w-[1500px] mx-auto border-t border-yellow-400/30 pt-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-yellow-400 font-bold">✨ add rarity:</span>
+              <input value={nrId} onChange={(e) => setNrId(e.target.value)} placeholder="id" className="w-20 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrLabel} onChange={(e) => setNrLabel(e.target.value)} placeholder="label" className="w-24 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrColor} onChange={(e) => setNrColor(e.target.value)} placeholder="text-color-class" className="w-32 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrMult} onChange={(e) => setNrMult(e.target.value)} placeholder="mult" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrWeight} onChange={(e) => setNrWeight(e.target.value)} placeholder="weight" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrSell} onChange={(e) => setNrSell(e.target.value)} placeholder="sell💎" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <button
+                onClick={async () => {
+                  if (!nrId.trim() || !nrLabel.trim()) return showCmd("id+label required");
+                  const { error } = await supabase.from("rarities").insert({
+                    id: nrId.trim(), label: nrLabel.trim(), color: nrColor.trim() || "text-cyan-400",
+                    mult: Number(nrMult) || 1, weight: Number(nrWeight) || 1, sell_gems: Number(nrSell) || 1,
+                    sort_order: raritiesList.length + 100,
+                  });
+                  if (error) showCmd("❌ " + error.message);
+                  else { showCmd("✅ rarity added"); setNrId(""); setNrLabel(""); }
+                }}
+                className="border border-yellow-400/50 text-yellow-400 rounded px-2 py-1 hover:bg-yellow-400/10"
+              >+ rarity</button>
+              {raritiesList.map((r) => (
+                <span key={r.id} className={`border border-foreground/30 rounded px-1 ${r.color}`}>
+                  {r.label} ×{r.mult}
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Delete rarity ${r.label}? (will delete its pets)`)) return;
+                      const { error } = await supabase.from("rarities").delete().eq("id", r.id);
+                      if (error) showCmd("❌ " + error.message);
+                    }}
+                    className="ml-1 text-red-400 hover:underline"
+                  >×</button>
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-pink-400 font-bold">🐾 add pet:</span>
+              <input value={npId} onChange={(e) => setNpId(e.target.value)} placeholder="id" className="w-20 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="name" className="w-32 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={npIcon} onChange={(e) => setNpIcon(e.target.value)} placeholder="🐾" className="w-12 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none text-center" />
+              <select value={npRarity} onChange={(e) => setNpRarity(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none">
+                <option value="">-- rarity --</option>
+                {raritiesList.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+              <button
+                onClick={async () => {
+                  if (!npId.trim() || !npName.trim() || !npRarity) return showCmd("id, name, rarity required");
+                  const { error } = await supabase.from("pets_catalog").insert({
+                    id: npId.trim(), name: npName.trim(), icon: npIcon || "🐾", rarity_id: npRarity,
+                    sort_order: petsCatalog.length + 100,
+                  });
+                  if (error) showCmd("❌ " + error.message);
+                  else { showCmd("✅ pet added"); setNpId(""); setNpName(""); }
+                }}
+                className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 hover:bg-pink-400/10"
+              >+ pet</button>
+              <span className="opacity-60">({petsCatalog.length} pets)</span>
+            </div>
           </div>
 
           {/* Shop creator */}

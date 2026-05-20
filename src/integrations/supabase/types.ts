@@ -146,6 +146,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pets_catalog: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          rarity_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id: string
+          name: string
+          rarity_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          rarity_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_catalog_rarity_id_fkey"
+            columns: ["rarity_id"]
+            isOneToOne: false
+            referencedRelation: "rarities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           banned: boolean
@@ -188,6 +223,39 @@ export type Database = {
           points?: number
           tokens?: number
           username?: string
+        }
+        Relationships: []
+      }
+      rarities: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          label: string
+          mult: number
+          sell_gems: number
+          sort_order: number
+          weight: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id: string
+          label: string
+          mult?: number
+          sell_gems?: number
+          sort_order?: number
+          weight?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          label?: string
+          mult?: number
+          sell_gems?: number
+          sort_order?: number
+          weight?: number
         }
         Relationships: []
       }
