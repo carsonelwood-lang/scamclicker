@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import './App.css'
 
 function App() {
   // 🎮 GAME STATE
@@ -10,11 +9,11 @@ function App() {
   // 🔥 ADMIN STATE
   const [adminActive, setAdminActive] = useState(false)
   const [showControls, setShowControls] = useState(false)
-  const [showUpdatePanel, setShowUpdatePanel] = useState(false)
   const [adminPass, setAdminPass] = useState('')
+  const [showUpdatePanel, setShowUpdatePanel] = useState(false)
   const ADMIN_PASSWORD = 'scam2024'
 
-  // Update panel inputs
+  // Update form state
   const [updateScore, setUpdateScore] = useState('')
   const [updateClicks, setUpdateClicks] = useState('')
   const [updateUsername, setUpdateUsername] = useState('')
@@ -64,7 +63,7 @@ function App() {
       background: 'linear-gradient(135deg, #0f0f23, #ff6b35)', 
       minHeight: '100vh', 
       color: 'white', 
-      padding: '20px 20px 150px 20px',
+      padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
       <h1 style={{fontSize: '3em', textShadow: '0 0 30px #ff6b35'}}>
@@ -93,11 +92,10 @@ function App() {
             background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
             border: 'none', borderRadius: '50%', cursor: 'pointer',
             margin: '20px', boxShadow: '0 20px 40px rgba(255,107,53,0.4)',
-            color: 'white', fontWeight: 'bold', transition: 'transform 0.1s'
+            color: 'white', fontWeight: 'bold'
           }}
-          onMouseDown={(e) => (e.currentTarget).style.transform = 'scale(0.95)'}
-          onMouseUp={(e) => (e.currentTarget).style.transform = 'scale(1)'}
-          onMouseLeave={(e) => (e.currentTarget).style.transform = 'scale(1)'}
+          onMouseDown={(e) => (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)'}
+          onMouseUp={(e) => (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'}
         >
           CLICK FOR $$$ 💸
         </button>
@@ -105,11 +103,12 @@ function App() {
 
       {/* 🔥 ADMIN PANEL */}
       <div style={{
-        position: 'fixed', bottom: '150px', right: '30px',
+        position: 'fixed', bottom: '30px', right: '30px',
         background: 'linear-gradient(145deg, #1a1a2e, #ff6b35)',
         color: 'white', padding: '25px', borderRadius: '20px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.8)', zIndex: 9999,
-        minWidth: '280px', border: '3px solid #ff6b35'
+        minWidth: '280px', border: '3px solid #ff6b35',
+        display: 'block'
       }}>
         {!adminActive ? (
           <>
@@ -161,21 +160,32 @@ function App() {
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px'}}>
                   <button onClick={() => addMoney(10000)} style={{
                     padding: '10px', background: 'gold', color: 'black', border: 'none',
-                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', boxSizing: 'border-box'
+                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold'
                   }}>$10K</button>
                   <button onClick={() => addMoney(1000000)} style={{
                     padding: '10px', background: 'gold', color: 'black', border: 'none',
-                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', boxSizing: 'border-box'
+                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold'
                   }}>$1M</button>
                   <button onClick={() => addMoney(1000000000)} style={{
                     padding: '10px', background: '#ff4444', color: 'white', border: 'none',
-                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', boxSizing: 'border-box'
+                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold'
                   }}>$1B</button>
                   <button onClick={() => window.location.reload()} style={{
                     padding: '10px', background: '#666', color: 'white', border: 'none',
-                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', boxSizing: 'border-box'
+                    borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold'
                   }}>🔄 Reset</button>
                 </div>
+                
+                <button
+                  onClick={() => setShowUpdatePanel(!showUpdatePanel)}
+                  style={{
+                    width: '100%', padding: '12px', background: '#00bfff', color: 'white',
+                    border: 'none', borderRadius: '10px', marginBottom: '10px', cursor: 'pointer',
+                    fontWeight: 'bold', boxSizing: 'border-box'
+                  }}
+                >
+                  ⚙️ {showUpdatePanel ? 'HIDE' : 'SHOW'} UPDATE
+                </button>
               </>
             )}
             
@@ -193,71 +203,54 @@ function App() {
         )}
       </div>
 
-      {/* UPDATE BUTTON - Only visible to admins */}
-      {adminActive && (
-        <button
-          onClick={() => setShowUpdatePanel(!showUpdatePanel)}
-          style={{
-            position: 'fixed', bottom: '30px', right: '30px',
-            padding: '15px 20px', background: '#00bfff',
-            color: 'white', border: 'none', borderRadius: '10px',
-            fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
-            zIndex: 9998, boxShadow: '0 10px 30px rgba(0,191,255,0.5)',
-            boxSizing: 'border-box'
-          }}
-        >
-          ⚙️ {showUpdatePanel ? 'CLOSE UPDATE' : 'OPEN UPDATE'}
-        </button>
-      )}
-
-      {/* UPDATE PANEL - Full customization */}
+      {/* UPDATE PANEL */}
       {adminActive && showUpdatePanel && (
         <div style={{
-          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          background: 'linear-gradient(145deg, #1a1a2e, #ff6b35)',
-          color: 'white', padding: '30px', borderRadius: '20px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.9)', zIndex: 9997,
-          minWidth: '350px', maxWidth: '90vw', border: '3px solid #00bfff'
+          position: 'fixed', bottom: '400px', right: '30px',
+          background: 'linear-gradient(145deg, #1a1a2e, #00bfff)',
+          color: 'white', padding: '20px', borderRadius: '15px',
+          boxShadow: '0 20px 60px rgba(0,191,255,0.5)', zIndex: 9998,
+          minWidth: '280px', border: '2px solid #00bfff'
         }}>
-          <h3 style={{margin: '0 0 20px 0', textAlign: 'center'}}>🎮 CUSTOMIZE GAME</h3>
+          <h3 style={{margin: '0 0 15px 0', textAlign: 'center'}}>⚙️ UPDATE GAME</h3>
           
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Set Score:</label>
+          <div style={{marginBottom: '12px'}}>
+            <label style={{display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold'}}>Score:</label>
             <input
               type="number"
               value={updateScore}
               onChange={(e) => setUpdateScore(e.target.value)}
-              placeholder="Enter new score"
+              placeholder="Enter score"
               style={{
-                width: '100%', padding: '10px', borderRadius: '8px', border: 'none',
+                width: '100%', padding: '8px', borderRadius: '8px', border: 'none',
                 fontSize: '14px', boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Set Clicks:</label>
+          <div style={{marginBottom: '12px'}}>
+            <label style={{display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold'}}>Clicks:</label>
             <input
               type="number"
               value={updateClicks}
               onChange={(e) => setUpdateClicks(e.target.value)}
-              placeholder="Enter new clicks"
+              placeholder="Enter clicks"
               style={{
-                width: '100%', padding: '10px', borderRadius: '8px', border: 'none',
+                width: '100%', padding: '8px', borderRadius: '8px', border: 'none',
                 fontSize: '14px', boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Set Username:</label>
+          <div style={{marginBottom: '12px'}}>
+            <label style={{display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold'}}>Username:</label>
             <input
               type="text"
               value={updateUsername}
               onChange={(e) => setUpdateUsername(e.target.value)}
-              placeholder="Enter new username"
+              placeholder="Enter username"
               style={{
-                width: '100%', padding: '10px', borderRadius: '8px', border: 'none',
+                width: '100%', padding: '8px', borderRadius: '8px', border: 'none',
                 fontSize: '14px', boxSizing: 'border-box'
               }}
             />
@@ -266,13 +259,12 @@ function App() {
           <button
             onClick={handleUpdateGame}
             style={{
-              width: '100%', padding: '12px', background: '#4CAF50',
-              color: 'white', border: 'none', borderRadius: '10px',
-              fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
-              boxSizing: 'border-box'
+              width: '100%', padding: '10px', background: '#4CAF50',
+              color: 'white', border: 'none', borderRadius: '8px',
+              fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', boxSizing: 'border-box'
             }}
           >
-            ✅ UPDATE GAME
+            ✅ UPDATE
           </button>
         </div>
       )}
