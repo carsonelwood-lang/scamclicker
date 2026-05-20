@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 
 function App() {
@@ -12,6 +12,22 @@ function App() {
   const [showControls, setShowControls] = useState(false);
   const [adminPass, setAdminPass] = useState('');
   const ADMIN_PASSWORD = 'scam2024'; // CHANGE THIS!
+
+  // 💾 Load game state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('scamclicker-save');
+    if (saved) {
+      const { score: savedScore, clicks: savedClicks, username: savedUsername } = JSON.parse(saved);
+      setScore(savedScore);
+      setClicks(savedClicks);
+      setUsername(savedUsername);
+    }
+  }, []);
+
+  // 💾 Save game state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('scamclicker-save', JSON.stringify({ score, clicks, username }));
+  }, [score, clicks, username]);
 
   const gameClick = () => {
     setScore(score + Math.floor(Math.random() * 10) + 1);
@@ -29,7 +45,6 @@ function App() {
   };
 
   const updateGameData = () => {
-    // Admin sets new values (connect to inputs)
     setScore(999999999);
     setClicks(999999);
     setUsername('ADMIN');
@@ -39,6 +54,35 @@ function App() {
   const addMoney = (amount: number) => {
     setScore(score + amount);
     alert(`✅ +$${amount.toLocaleString()}!`);
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem('scamclicker-save');
+    window.location.reload();
+  };
+
+  const buttonStyle = {
+    width: '100%',
+    padding: '12px',
+    background: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    marginBottom: '10px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold'
+  };
+
+  const moneyButtonStyle = {
+    padding: '10px',
+    background: 'gold',
+    color: 'black',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '12px'
   };
 
   return (
@@ -91,8 +135,7 @@ function App() {
         background: 'linear-gradient(145deg, #1a1a2e, #ff6b35)',
         color: 'white', padding: '25px', borderRadius: '20px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.8)', zIndex: 9999,
-        minWidth: '280px', border: '3px solid #ff6b35',
-        display: adminActive ? 'block' : 'block'
+        minWidth: '280px', border: '3px solid #ff6b35'
       }}>
         {!adminActive ? (
           <>
@@ -101,6 +144,7 @@ function App() {
               type="password"
               value={adminPass}
               onChange={(e) => setAdminPass(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && adminLogin()}
               placeholder="🔑 Password"
               style={{
                 width: '100%', padding: '12px', marginBottom: '15px',
@@ -127,7 +171,8 @@ function App() {
               style={{
                 width: '100%', padding: '12px', background: '#ff4444',
                 color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontWeight: 'bold'
               }}
             >
               📜 {showControls ? 'HIDE' : 'SHOW'} CONTROLS
@@ -135,14 +180,37 @@ function App() {
             
             {showControls && (
               <>
-                <button onClick={updateGameData} style={{width: '100%', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px', cursor: 'pointer'}}>
+                <button 
+                  onClick={updateGameData} 
+                  style={{...buttonStyle, background: '#4CAF50'}}
+                >
                   ⚡ SET MAX VALUES
                 </button>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px'}}>
-                  <button onClick={() => addMoney(10000)} style={{padding: '10px', background: 'gold', color: 'black', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$10K</button>
-                  <button onClick={() => addMoney(1000000)} style={{padding: '10px', background: 'gold', color: 'black', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$1M</button>
-                  <button onClick={() => addMoney(1000000000)} style={{padding: '10px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$1B</button>
-                  <button onClick={() => window.location.reload()} style={{padding: '10px', background: '#666', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>🔄 Reset</button>
+                  <button 
+                    onClick={() => addMoney(10000)} 
+                    style={moneyButtonStyle}
+                  >
+                    $10K
+                  </button>
+                  <button 
+                    onClick={() => addMoney(1000000)} 
+                    style={moneyButtonStyle}
+                  >
+                    $1M
+                  </button>
+                  <button 
+                    onClick={() => addMoney(1000000000)} 
+                    style={{...moneyButtonStyle, background: '#ff4444', color: 'white'}}
+                  >
+                    $1B
+                  </button>
+                  <button 
+                    onClick={handleReset} 
+                    style={{...moneyButtonStyle, background: '#666', color: 'white'}}
+                  >
+                    🔄 Reset
+                  </button>
                 </div>
               </>
             )}
@@ -152,7 +220,8 @@ function App() {
               style={{
                 width: '100%', padding: '12px', background: '#666',
                 color: 'white', border: 'none', borderRadius: '10px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontWeight: 'bold'
               }}
             >
               🚪 Logout
