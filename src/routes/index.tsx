@@ -390,6 +390,8 @@ function Game({ session }: { session: Session }) {
       if (shop) setShopItems(shop as ShopItem[]);
       if (pets) setUserPets(pets as UserPet[]);
       if (tr) setTrades(tr as PetTrade[]);
+      if (rar) setRaritiesList(rar as RarityRow[]);
+      if (cat) setPetsCatalog(cat as Pet[]);
       loadedRef.current = true;
 
       await supabase.from("profiles").update({ is_online: true, last_seen: new Date().toISOString() }).eq("id", userId);
