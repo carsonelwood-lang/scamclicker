@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
+import React, { useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 
 function App() {
   // 🎮 GAME STATE
@@ -78,8 +78,8 @@ function App() {
             margin: '20px', boxShadow: '0 20px 40px rgba(255,107,53,0.4)',
             color: 'white', fontWeight: 'bold'
           }}
-          onMouseDown={(e) => (e.target as HTMLButtonElement).style.transform = 'scale(0.95)'}
-          onMouseUp={(e) => (e.target as HTMLButtonElement).style.transform = 'scale(1)'}
+          onMouseDown={(e) => (e.currentTarget).style.transform = 'scale(0.95)'}
+          onMouseUp={(e) => (e.currentTarget).style.transform = 'scale(1)'}
         >
           CLICK FOR $$$ 💸
         </button>
@@ -104,7 +104,8 @@ function App() {
               placeholder="🔑 Password"
               style={{
                 width: '100%', padding: '12px', marginBottom: '15px',
-                borderRadius: '10px', border: 'none', fontSize: '16px'
+                borderRadius: '10px', border: 'none', fontSize: '16px',
+                boxSizing: 'border-box'
               }}
             />
             <button
@@ -125,7 +126,8 @@ function App() {
               onClick={() => setShowControls(!showControls)}
               style={{
                 width: '100%', padding: '12px', background: '#ff4444',
-                color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px'
+                color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px',
+                cursor: 'pointer'
               }}
             >
               📜 {showControls ? 'HIDE' : 'SHOW'} CONTROLS
@@ -133,14 +135,14 @@ function App() {
             
             {showControls && (
               <>
-                <button onClick={updateGameData} style={{width: '100%', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px'}}>
+                <button onClick={updateGameData} style={{width: '100%', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '10px', marginBottom: '10px', cursor: 'pointer'}}>
                   ⚡ SET MAX VALUES
                 </button>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px'}}>
-                  <button onClick={() => addMoney(10000)} style={{padding: '10px', background: 'gold', color: 'black'}}>$10K</button>
-                  <button onClick={() => addMoney(1000000)} style={{padding: '10px', background: 'gold', color: 'black'}}>$1M</button>
-                  <button onClick={() => addMoney(1000000000)} style={{padding: '10px', background: '#ff4444', color: 'white'}}>$1B</button>
-                  <button onClick={() => window.location.reload()} style={{padding: '10px', background: '#666', color: 'white'}}>🔄 Reset</button>
+                  <button onClick={() => addMoney(10000)} style={{padding: '10px', background: 'gold', color: 'black', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$10K</button>
+                  <button onClick={() => addMoney(1000000)} style={{padding: '10px', background: 'gold', color: 'black', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$1M</button>
+                  <button onClick={() => addMoney(1000000000)} style={{padding: '10px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>$1B</button>
+                  <button onClick={() => window.location.reload()} style={{padding: '10px', background: '#666', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer'}}>🔄 Reset</button>
                 </div>
               </>
             )}
@@ -149,7 +151,8 @@ function App() {
               onClick={() => {setAdminActive(false); setAdminPass('');}}
               style={{
                 width: '100%', padding: '12px', background: '#666',
-                color: 'white', border: 'none', borderRadius: '10px'
+                color: 'white', border: 'none', borderRadius: '10px',
+                cursor: 'pointer'
               }}
             >
               🚪 Logout
@@ -161,6 +164,6 @@ function App() {
   );
 }
 
-// Render
-const root = ReactDOM.createRoot(document.getElementById('root')!);
-root.render(<App />);
+export const Route = createFileRoute('/')({
+  component: App,
+});
