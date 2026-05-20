@@ -853,7 +853,8 @@ function Game({ session }: { session: Session }) {
         const col = cmd === "giftpts" ? "points" : cmd === "giftgems" ? "gems" : "tokens";
         const { data: cur } = await supabase.from("profiles").select(col).eq("id", uid).maybeSingle();
         const have = Number((cur as Record<string, number> | null)?.[col] ?? 0);
-        const { error } = await supabase.from("profiles").update({ [col]: have + amt }).eq("id", uid);
+        const patch = col === "points" ? { points: have + amt } : col === "gems" ? { gems: have + amt } : { tokens: have + amt };
+        const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
         showCmd(error ? "❌ " + error.message : `🎁 ${uname} +${amt} ${col}`);
         break;
       }
