@@ -935,8 +935,9 @@ function Game({ session }: { session: Session }) {
 
   const hatchEgg = async () => {
     if (gems < EGG_COST_GEMS) return showCmd(`❌ need ${EGG_COST_GEMS} 💎`);
-    setGems((g) => g - EGG_COST_GEMS);
     const pet = rollPet();
+    if (!pet) return showCmd("❌ no pets in catalog");
+    setGems((g) => g - EGG_COST_GEMS);
     const { data, error } = await supabase
       .from("user_pets")
       .insert({ owner_id: userId, pet_id: pet.id })
@@ -947,7 +948,7 @@ function Game({ session }: { session: Session }) {
       return showCmd("❌ " + (error?.message || "hatch failed"));
     }
     setUserPets((ps) => [data as UserPet, ...ps]);
-    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${RARITY[pet.rarity].label})`);
+    showCmd(`🥚 hatched ${pet.icon} ${pet.name} (${getRarity(pet.rarity).label})`);
   };
 
   const toggleEquip = async (upId: string) => {
