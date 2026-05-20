@@ -550,13 +550,21 @@ function Game({ session }: { session: Session }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMsgs]);
 
+  // Derived catalog maps
+  const RARITY: Record<string, RarityRow & { sellGems: number }> = {};
+  for (const r of raritiesList) RARITY[r.id] = { ...r, sellGems: r.sell_gems };
+  const PET_BY_ID: Record<string, Pet> = {};
+  for (const p of petsCatalog) PET_BY_ID[p.id] = p;
+  const getRarity = (id: string) => RARITY[id] ?? { ...FALLBACK_RARITY, sellGems: FALLBACK_RARITY.sell_gems };
+  const rollPet = (): Pet | null => rollPetFrom(petsCatalog, RARITY);
+
   // Pet boost multiplier from equipped pets
   const petMult = equipped.reduce((acc, upId) => {
     const up = userPets.find((p) => p.id === upId);
     if (!up) return acc;
     const pet = PET_BY_ID[up.pet_id];
     if (!pet) return acc;
-    return acc * RARITY[pet.rarity].mult;
+    return acc * getRarity(pet.rarity).mult;
   }, 1);
 
   const weatherMult = weather && weather.expiresAt > now ? weather.multiplier : 1;
