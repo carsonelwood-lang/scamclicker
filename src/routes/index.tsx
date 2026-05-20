@@ -361,12 +361,14 @@ function Game({ session }: { session: Session }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }] = await Promise.all([
+      const [{ data: prof }, { data: roles }, { data: shop }, { data: pets }, { data: tr }, { data: rar }, { data: cat }] = await Promise.all([
         supabase.from("profiles").select("username, points, gems, tokens, owned, muted, equipped_pets").eq("id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("admin_shop_items").select("*").eq("active", true).order("created_at", { ascending: false }),
         supabase.from("user_pets").select("*").eq("owner_id", userId).order("acquired_at", { ascending: false }),
         supabase.from("pet_trades").select("*").or(`from_user.eq.${userId},to_user.eq.${userId}`).eq("status", "pending"),
+        supabase.from("rarities").select("*").order("sort_order"),
+        supabase.from("pets_catalog").select("*").order("sort_order"),
       ]);
       if (!mounted) return;
       if (prof) {
