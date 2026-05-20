@@ -8,6 +8,13 @@ function App() {
   const [adminActive, setAdminActive] = useState(false)
   const [showControls, setShowControls] = useState(false)
   const [adminPass, setAdminPass] = useState('')
+  const [showAdminPanel, setShowAdminPanel] = useState(false)
+  
+  // Admin customization state
+  const [adminScore, setAdminScore] = useState('')
+  const [adminClicks, setAdminClicks] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
+  
   const ADMIN_PASSWORD = 'scam2024'
 
   const gameClick = () => {
@@ -37,6 +44,17 @@ function App() {
     alert(`✅ +$${amount.toLocaleString()}!`)
   }
 
+  const handleAdminUpdate = () => {
+    if (adminScore) setScore(parseInt(adminScore))
+    if (adminClicks) setClicks(parseInt(adminClicks))
+    if (adminUsername) setUsername(adminUsername)
+    
+    setAdminScore('')
+    setAdminClicks('')
+    setAdminUsername('')
+    alert('✅ Game updated successfully!')
+  }
+
   return (
     <div className="game-container">
       <h1 className="title">🤑 SCAMCLICKER v2.0</h1>
@@ -51,6 +69,7 @@ function App() {
         </button>
       </div>
 
+      {/* Admin Panel - Fixed at bottom right */}
       <div className="admin-panel">
         {!adminActive ? (
           <>
@@ -115,6 +134,7 @@ function App() {
               onClick={() => {
                 setAdminActive(false)
                 setAdminPass('')
+                setShowControls(false)
               }}
             >
               🚪 Logout
@@ -122,6 +142,55 @@ function App() {
           </>
         )}
       </div>
+
+      {/* Admin Update Panel - Scrollable at bottom */}
+      {adminActive && (
+        <div className="admin-update-panel">
+          <button
+            className="toggle-update-btn"
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+          >
+            {showAdminPanel ? '▲ HIDE UPDATE PANEL' : '▼ SHOW UPDATE PANEL'}
+          </button>
+
+          {showAdminPanel && (
+            <div className="update-form">
+              <h3>⚙️ CUSTOMIZE GAME</h3>
+              
+              <label>Set Score:</label>
+              <input
+                type="number"
+                value={adminScore}
+                onChange={(e) => setAdminScore(e.target.value)}
+                placeholder="Enter new score"
+                className="form-input"
+              />
+
+              <label>Set Clicks:</label>
+              <input
+                type="number"
+                value={adminClicks}
+                onChange={(e) => setAdminClicks(e.target.value)}
+                placeholder="Enter new clicks"
+                className="form-input"
+              />
+
+              <label>Set Username:</label>
+              <input
+                type="text"
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                placeholder="Enter new username"
+                className="form-input"
+              />
+
+              <button className="update-btn" onClick={handleAdminUpdate}>
+                ✅ UPDATE GAME
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
