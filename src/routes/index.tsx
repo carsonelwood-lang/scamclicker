@@ -1227,7 +1227,82 @@ function Game({ session }: { session: Session }) {
             <button onClick={() => adminUserTarget && runCommand(`/revokeadmin ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">-admin</button>
             <button onClick={() => adminUserTarget && runCommand(`/mute ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">🔇 mute</button>
             <button onClick={() => adminUserTarget && runCommand(`/unmute ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">🔊 unmute</button>
+            <button onClick={() => adminUserTarget && runCommand(`/ban ${adminUserTarget}`)} className="border border-red-400/50 text-red-400 rounded px-2 py-1 hover:bg-red-400/10">🚫 ban</button>
+            <button onClick={() => adminUserTarget && runCommand(`/unban ${adminUserTarget}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">✅ unban</button>
+            <span className="opacity-50">|gift→</span>
+            <button onClick={() => adminUserTarget && runCommand(`/giftpts ${adminUserTarget} ${adminGiveAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+pts</button>
+            <button onClick={() => adminUserTarget && runCommand(`/giftgems ${adminUserTarget} ${adminGemsAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+💎</button>
+            <button onClick={() => adminUserTarget && runCommand(`/gifttokens ${adminUserTarget} ${adminTokensAmt}`)} className="border border-green-400/40 text-green-400 rounded px-2 py-1 hover:bg-green-400/10">+🎟️</button>
+            <select value={giftPetId} onChange={(e) => setGiftPetId(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none">
+              <option value="">-- pet --</option>
+              {petsCatalog.map((p) => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
+            </select>
+            <button onClick={() => adminUserTarget && giftPetId && runCommand(`/giftpet ${adminUserTarget} ${giftPetId}`)} className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 hover:bg-pink-400/10">🎁 gift pet</button>
+            <button onClick={() => giftPetId && runCommand(`/spawnpet ${giftPetId}`)} className="border border-foreground/30 rounded px-2 py-1 hover:bg-foreground/10">✨ spawn (me)</button>
             {cmdMsg && <span className="opacity-80">— {cmdMsg}</span>}
+          </div>
+
+          {/* Catalog editor: rarities + pets */}
+          <div className="max-w-[1500px] mx-auto border-t border-yellow-400/30 pt-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-yellow-400 font-bold">✨ add rarity:</span>
+              <input value={nrId} onChange={(e) => setNrId(e.target.value)} placeholder="id" className="w-20 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrLabel} onChange={(e) => setNrLabel(e.target.value)} placeholder="label" className="w-24 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrColor} onChange={(e) => setNrColor(e.target.value)} placeholder="text-color-class" className="w-32 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrMult} onChange={(e) => setNrMult(e.target.value)} placeholder="mult" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrWeight} onChange={(e) => setNrWeight(e.target.value)} placeholder="weight" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={nrSell} onChange={(e) => setNrSell(e.target.value)} placeholder="sell💎" className="w-14 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <button
+                onClick={async () => {
+                  if (!nrId.trim() || !nrLabel.trim()) return showCmd("id+label required");
+                  const { error } = await supabase.from("rarities").insert({
+                    id: nrId.trim(), label: nrLabel.trim(), color: nrColor.trim() || "text-cyan-400",
+                    mult: Number(nrMult) || 1, weight: Number(nrWeight) || 1, sell_gems: Number(nrSell) || 1,
+                    sort_order: raritiesList.length + 100,
+                  });
+                  if (error) showCmd("❌ " + error.message);
+                  else { showCmd("✅ rarity added"); setNrId(""); setNrLabel(""); }
+                }}
+                className="border border-yellow-400/50 text-yellow-400 rounded px-2 py-1 hover:bg-yellow-400/10"
+              >+ rarity</button>
+              {raritiesList.map((r) => (
+                <span key={r.id} className={`border border-foreground/30 rounded px-1 ${r.color}`}>
+                  {r.label} ×{r.mult}
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Delete rarity ${r.label}? (will delete its pets)`)) return;
+                      const { error } = await supabase.from("rarities").delete().eq("id", r.id);
+                      if (error) showCmd("❌ " + error.message);
+                    }}
+                    className="ml-1 text-red-400 hover:underline"
+                  >×</button>
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-pink-400 font-bold">🐾 add pet:</span>
+              <input value={npId} onChange={(e) => setNpId(e.target.value)} placeholder="id" className="w-20 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="name" className="w-32 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none" />
+              <input value={npIcon} onChange={(e) => setNpIcon(e.target.value)} placeholder="🐾" className="w-12 bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none text-center" />
+              <select value={npRarity} onChange={(e) => setNpRarity(e.target.value)} className="bg-foreground/10 border border-foreground/30 rounded px-1 py-1 outline-none">
+                <option value="">-- rarity --</option>
+                {raritiesList.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+              <button
+                onClick={async () => {
+                  if (!npId.trim() || !npName.trim() || !npRarity) return showCmd("id, name, rarity required");
+                  const { error } = await supabase.from("pets_catalog").insert({
+                    id: npId.trim(), name: npName.trim(), icon: npIcon || "🐾", rarity_id: npRarity,
+                    sort_order: petsCatalog.length + 100,
+                  });
+                  if (error) showCmd("❌ " + error.message);
+                  else { showCmd("✅ pet added"); setNpId(""); setNpName(""); }
+                }}
+                className="border border-pink-400/50 text-pink-400 rounded px-2 py-1 hover:bg-pink-400/10"
+              >+ pet</button>
+              <span className="opacity-60">({petsCatalog.length} pets)</span>
+            </div>
           </div>
 
           {/* Shop creator */}
