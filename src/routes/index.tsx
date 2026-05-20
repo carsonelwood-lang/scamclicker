@@ -842,6 +842,87 @@ function Game({ session }: { session: Session }) {
         showCmd(error ? "❌ " + error.message : `✅ ${uname} ${cmd.replace("set","")}=${amt}`);
         break;
       }
+      case "giftpts":
+      case "giftgems":
+      case "gifttokens": {
+        const uname = argN(0);
+        const amt = Number(argN(1));
+        if (!uname || isNaN(amt) || !amt) return showCmd(`usage: /${cmd} <user> <amount>`), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const col = cmd === "giftpts" ? "points" : cmd === "giftgems" ? "gems" : "tokens";
+        const { data: cur } = await supabase.from("profiles").select(col).eq("id", uid).maybeSingle();
+        const have = Number((cur as Record<string, number> | null)?.[col] ?? 0);
+        const { error } = await supabase.from("profiles").update({ [col]: have + amt }).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `🎁 ${uname} +${amt} ${col}`);
+        break;
+      }
+      case "giftpet": {
+        const uname = argN(0);
+        const petId = argN(1);
+        if (!uname || !petId) return showCmd("usage: /giftpet <user> <pet_id>"), true;
+        if (!PET_BY_ID[petId]) return showCmd("❌ unknown pet_id (see pets catalog)"), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("user_pets").insert({ owner_id: uid, pet_id: petId });
+        showCmd(error ? "❌ " + error.message : `🎁 gifted ${PET_BY_ID[petId].icon} ${PET_BY_ID[petId].name} to ${uname}`);
+        break;
+      }
+      case "spawnpet": {
+        const petId = argN(0);
+        if (!petId || !PET_BY_ID[petId]) return showCmd("usage: /spawnpet <pet_id>"), true;
+        const { data, error } = await supabase.from("user_pets").insert({ owner_id: userId, pet_id: petId }).select().maybeSingle();
+        if (error) return showCmd("❌ " + error.message), true;
+        if (data) setUserPets((ps) => [data as UserPet, ...ps]);
+        showCmd(`✨ spawned ${PET_BY_ID[petId].icon} ${PET_BY_ID[petId].name}`);
+        break;
+      }
+      case "addpet": {
+        const id = argN(0); const rarity = argN(1); const icon = argN(2); const name = parts.slice(4).join(" ");
+        if (!id || !rarity || !icon || !name) return showCmd("usage: /addpet <id> <rarity> <icon> <name…>"), true;
+        if (!RARITY[rarity]) return showCmd("❌ unknown rarity"), true;
+        const { error } = await supabase.from("pets_catalog").insert({ id, name, icon, rarity_id: rarity, sort_order: petsCatalog.length + 100 });
+        showCmd(error ? "❌ " + error.message : `✅ added pet ${icon} ${name}`);
+        break;
+      }
+      case "delpet": {
+        if (!arg) return showCmd("usage: /delpet <id>"), true;
+        const { error } = await supabase.from("pets_catalog").delete().eq("id", arg);
+        showCmd(error ? "❌ " + error.message : `🗑️ deleted pet ${arg}`);
+        break;
+      }
+      case "addrarity": {
+        // /addrarity <id> <mult> <weight> <sellGems> <color> <label…>
+        const id = argN(0); const mult = Number(argN(1)); const weight = Number(argN(2)); const sell = Number(argN(3)); const color = argN(4); const label = parts.slice(6).join(" ");
+        if (!id || !mult || !weight || isNaN(sell) || !color || !label) return showCmd("usage: /addrarity <id> <mult> <weight> <sellGems> <color> <label…>"), true;
+        const { error } = await supabase.from("rarities").insert({ id, label, color, mult, weight, sell_gems: sell, sort_order: raritiesList.length + 100 });
+        showCmd(error ? "❌ " + error.message : `✅ added rarity ${label}`);
+        break;
+      }
+      case "delrarity": {
+        if (!arg) return showCmd("usage: /delrarity <id>"), true;
+        const { error } = await supabase.from("rarities").delete().eq("id", arg);
+        showCmd(error ? "❌ " + error.message : `🗑️ deleted rarity ${arg}`);
+        break;
+      }
+      case "ban":
+      case "unban": {
+        if (!arg) return showCmd(`usage: /${cmd} <username>`), true;
+        const uid = await findUser(arg);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("profiles").update({ banned: cmd === "ban" }).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `✅ ${arg} ${cmd}ned`);
+        break;
+      }
+      case "rename": {
+        const uname = argN(0); const newName = argN(1);
+        if (!uname || !newName) return showCmd("usage: /rename <user> <newname>"), true;
+        const uid = await findUser(uname);
+        if (!uid) return showCmd("❌ user not found"), true;
+        const { error } = await supabase.from("profiles").update({ username: newName }).eq("id", uid);
+        showCmd(error ? "❌ " + error.message : `✅ ${uname} → ${newName}`);
+        break;
+      }
       default:
         showCmd("❌ unknown command — /help");
     }
