@@ -724,7 +724,7 @@ function Game({ session }: { session: Session }) {
 
     if (cmd === "help") {
       showCmd(isAdmin
-        ? "/give /givegems /givetokens /giveall /godmode /announce /reset /weather /clearweather /multiplier /freeze /unfreeze /clearchat /grantadmin /revokeadmin /mute /unmute /setpoints /setgems /settokens"
+        ? "/give /givegems /givetokens /giveall /godmode /announce /reset /weather /clearweather /multiplier /freeze /unfreeze /clearchat /grantadmin /revokeadmin /mute /unmute /setpoints /setgems /settokens /giftpts /giftgems /gifttokens /giftpet /spawnpet /addpet /delpet /addrarity /delrarity /ban /unban /rename"
         : "no commands — you're not admin");
       return true;
     }
