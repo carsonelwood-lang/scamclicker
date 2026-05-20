@@ -539,6 +539,18 @@ function Game({ session }: { session: Session }) {
       })
       .subscribe();
 
+    const catalogCh = supabase
+      .channel("catalog-room")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rarities" }, async () => {
+        const { data } = await supabase.from("rarities").select("*").order("sort_order");
+        if (data) setRaritiesList(data as RarityRow[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pets_catalog" }, async () => {
+        const { data } = await supabase.from("pets_catalog").select("*").order("sort_order");
+        if (data) setPetsCatalog((data as Array<{ id: string; name: string; icon: string; rarity_id: string; sort_order: number }>).map((p) => ({ id: p.id, name: p.name, icon: p.icon, rarity: p.rarity_id, sort_order: p.sort_order })));
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(chatCh);
       supabase.removeChannel(bcCh);
@@ -546,6 +558,7 @@ function Game({ session }: { session: Session }) {
       supabase.removeChannel(shopCh);
       supabase.removeChannel(petsCh);
       supabase.removeChannel(tradesCh);
+      supabase.removeChannel(catalogCh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
